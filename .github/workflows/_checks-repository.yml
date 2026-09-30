@@ -1,0 +1,19 @@
+name: Check Git repository
+
+on: [workflow_call]
+
+permissions: {}
+
+jobs:
+  Lint:
+    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - parallel:
+        - name: Run commitlint
+          uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed #v6.2.1
+        - name: Run actionlint
+          uses: kjanat/actionlint@08bb2c4f0d039744455b87aef1c647fb8b66d37b # v1.17.0

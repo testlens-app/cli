@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  # Cancels in-progress runs only for pull requests
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+
+  repo-checks:
+    name: Repository Checks
+    if: github.event_name != 'push'
+    uses: ./.github/workflows/_checks-repository.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
+  gradle:
+    name: Gradle
+    uses: ./.github/workflows/_gradle.yml
+    secrets: inherit
+    permissions:
+      contents: write
+
+  status:
+    name: Status
+    needs:
+      [repo-checks, gradle]
+    if: always()
+    runs-on: ${{ vars.RUNNER_TYPE_SMALL }}
+    steps:
+      - name: Determine overall status
+        env:
+          STATUS: ${{ join(needs.*.result, ',') }}
+          FAILURE: ${{ contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled') }}
+        run: |
+          if [ "$FAILURE" = "true" ]; then
+            exit 1
+          fi

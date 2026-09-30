@@ -1,0 +1,32 @@
+[versions]
+junit = "6.1.3"
+wiremock = "4.0.0-beta.39"
+
+[libraries]
+assertj = { module = "org.assertj:assertj-core", version = "3.27.7" }
+diffUtils = { module = "io.github.java-diff-utils:java-diff-utils", version = "4.17" }
+error-prone-core = { module = "com.google.errorprone:error_prone_core", version = "2.50.0" }
+jackson-bom = { module = "tools.jackson:jackson-bom", version = "3.2.3" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
+jackson-core = { module = "tools.jackson.core:jackson-core" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind" }
+jakarta-annotation-api = { module = "jakarta.annotation:jakarta.annotation-api", version = "3.0.0" }
+jspecify = { module = "org.jspecify:jspecify", version = "1.0.1" }
+junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+nullaway = { module = "com.uber.nullaway:nullaway", version = "0.14.2" }
+picocli = { module = "info.picocli:picocli", version = "4.7.7" }
+picocli-codegen = { module = "info.picocli:picocli-codegen", version = "4.7.7" }
+slf4j-bom = { module = "org.slf4j:slf4j-bom", version = "2.0.20" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple" }
+tamboui-bom = { module = "dev.tamboui:tamboui-bom", version = "0.5.0" }
+tamboui-core = { module = "dev.tamboui:tamboui-core" }
+tamboui-panamaBackend = { module = "dev.tamboui:tamboui-panama-backend" }
+tamboui-toolkit = { module = "dev.tamboui:tamboui-toolkit" }
+tamboui-tui = { module = "dev.tamboui:tamboui-tui" }
+tamboui-widgets = { module = "dev.tamboui:tamboui-widgets" }
+wiremock-core = { module = "org.wiremock:wiremock-core", version.ref = "wiremock" }
+wiremock-httpclient-apache5 = { module = "org.wiremock:wiremock-httpclient-apache5", version.ref = "wiremock" }
+wiremock-jetty = { module = "org.wiremock:wiremock-jetty", version.ref = "wiremock" }
+wiremock-junit5 = { module = "org.wiremock:wiremock-junit5", version.ref = "wiremock" }

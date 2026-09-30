@@ -1,0 +1,51 @@
+name: Create and attach aggregated HTML report
+description: Create and attach aggregated HTML report using Open Test Reporting
+
+inputs:
+  display-name:
+    description: Display name of the archived report
+    required: true
+    default: Test Report
+  file-name-suffix:
+    description: Suffix of the HTML file name
+    required: true
+  xml-file-pattern:
+    description: Where to find Open Test Reporting XML files
+    required: true
+    default: '**/build/test-results/*/fork-*/open-test-report.xml'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: Gradle ${{ inputs.display-name }}
+        path: "**/build/reports/tests/**"
+        if-no-files-found: ignore
+    - uses: jbangdev/setup-jbang@cc28889678db839e29433f42f9ff25f148b6d8de # main
+    - id: file-check
+      shell: bash
+      run: |
+        shopt -s globstar
+        if ls ${{ inputs.xml-file-pattern }} 1> /dev/null 2>&1; then
+            echo "filesExist=true" >> "$GITHUB_OUTPUT"
+        else
+            echo "filesExist=false" >> "$GITHUB_OUTPUT"
+        fi
+    - id: generate-html-report
+      if: steps.file-check.outputs.filesExist == 'true'
+      shell: bash
+      run: |
+        shopt -s globstar
+        jbang \
+          org.opentest4j.reporting:open-test-reporting-cli:0.2.5:standalone \
+          html-report \
+          --output open-test-report-${{ inputs.file-name-suffix }}.html \
+          ${{ inputs.xml-file-pattern }}
+    - if: steps.generate-html-report.outcome == 'success'
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.display-name }}
+        path: open-test-report-${{ inputs.file-name-suffix }}.html
+        archive: false
+        if-no-files-found: error
