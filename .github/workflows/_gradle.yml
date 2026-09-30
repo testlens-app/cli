@@ -6,6 +6,7 @@ permissions:
   contents: read
 
 env:
+  BUILD_CACHE_BUCKET: ${{ secrets.HETZNER_STORAGE_BUCKET }}
   BUILD_CACHE_ACCESS_KEY: ${{ secrets.HETZNER_STORAGE_ACCESS_KEY_ID }}
   BUILD_CACHE_SECRET_KEY: ${{ secrets.HETZNER_STORAGE_SECRET_ACCESS_KEY }}
 
