@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui;
 
 import app.testlens.cli.client.model.Execution;

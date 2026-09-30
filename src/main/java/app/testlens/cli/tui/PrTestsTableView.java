@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui;
 
 import static app.testlens.cli.tui.PrTuiUtils.abbreviatedTestName;
