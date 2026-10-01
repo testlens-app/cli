@@ -13,7 +13,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,7 +38,7 @@ jobs:
   graalvm:
     name: GraalVM Native Image
     needs: build
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -59,7 +59,7 @@ jobs:
   dependency-submission:
     name: Dependency Submission
     needs: build
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    runs-on: ubuntu-latest
     if: github.event_name == 'push'
     permissions:
       contents: write
