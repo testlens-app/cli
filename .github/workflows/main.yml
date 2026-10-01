@@ -35,7 +35,7 @@ jobs:
     needs:
       [repo-checks, gradle]
     if: always()
-    runs-on: ${{ vars.RUNNER_TYPE_SMALL }}
+    runs-on: ubuntu-slim
     steps:
       - name: Determine overall status
         env:

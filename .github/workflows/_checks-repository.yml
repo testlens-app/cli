@@ -6,7 +6,7 @@ permissions: {}
 
 jobs:
   Lint:
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read

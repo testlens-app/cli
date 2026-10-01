@@ -13,7 +13,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -36,10 +36,24 @@ jobs:
           file-name-suffix: build
 
   graalvm:
-    name: GraalVM Native Image
+    strategy:
+      matrix:
+        os:
+        - runner: ubuntu
+          label: linux
+        - runner: macos
+          label: macos
+        - runner: windows
+          label: windows
+      fail-fast: false
+    runs-on: ${{ matrix.os.runner }}-latest
+    name: GraalVM Native Image (${{ matrix.os.label }})
     needs: build
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
     steps:
+      - name: standardize git line endings
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
@@ -55,11 +69,16 @@ jobs:
       - run: ./gradlew nativeCompile
       - name: Smoke test native image
         run: build/native/nativeCompile/testlens --help
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: testlens-${{ matrix.os.label }}
+          path: build/native/nativeCompile/testlens*
+          if-no-files-found: error
 
   dependency-submission:
     name: Dependency Submission
     needs: build
-    runs-on: ${{ vars.RUNNER_TYPE_REGULAR }}
+    runs-on: ubuntu-latest
     if: github.event_name == 'push'
     permissions:
       contents: write
