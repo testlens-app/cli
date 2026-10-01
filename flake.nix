@@ -21,7 +21,6 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             graalvmPackages.graalvm-ce-musl
-            git
           ];
 
           JAVA_HOME = pkgs.graalvmPackages.graalvm-ce-musl;
