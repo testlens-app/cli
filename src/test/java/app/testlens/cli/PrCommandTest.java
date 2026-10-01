@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli;
 
+import static app.testlens.cli.TestUtil.run;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
@@ -19,8 +20,6 @@ import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import picocli.CommandLine;
-import picocli.CommandLine.Help;
 import picocli.CommandLine.Help.Ansi;
 import tools.jackson.databind.ObjectMapper;
 
@@ -81,10 +78,11 @@ class PrCommandTest {
     void prints_pr_info_and_tests_with_stack_traces() {
         stubPullRequestWithTests("SHA");
 
-        var result = run("42", "--repo", "some-org/some-repo", "--token", "good", "--base-url", wireMock.baseUrl());
+        var result =
+            run("pr", "42", "--repo", "some-org/some-repo", "--token", "good", "--base-url", wireMock.baseUrl());
 
-        assertThat(result.exitCode).isZero();
-        assertThat(result.stdout.lines()).containsExactly(
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout().lines()).containsExactly(
             "Some PR (#42)",
             "Head:  SHA",
             "Tests: 7 executed",
@@ -104,7 +102,7 @@ class PrCommandTest {
             "           ... 1 more",
             "    2. SKIPPED (2026-01-02 03:04:05Z, see " + JOB_URL + ")"
         );
-        assertThat(result.stdout).doesNotContain("build-tool");
+        assertThat(result.stdout()).doesNotContain("build-tool");
     }
 
     @Test
@@ -113,6 +111,7 @@ class PrCommandTest {
 
         var result = run(
             Ansi.ON,
+            "pr",
             "42",
             "--repo",
             "some-org/some-repo",
@@ -122,8 +121,8 @@ class PrCommandTest {
             wireMock.baseUrl()
         );
 
-        assertThat(result.exitCode).isZero();
-        assertThat(withReadableAnsiCodes(result.stdout).lines()).containsExactly(
+        assertThat(result.exitCode()).isZero();
+        assertThat(withReadableAnsiCodes(result.stdout()).lines()).containsExactly(
             "<faint>Fetching pull request...<reset><clear><bold><blue>Some PR (<link https://github.com/some-org/some-repo/pull/42><underline>#42<no-underline></link>)<reset>",
             "Head:  SHA",
             "Tests: 7 executed",
@@ -152,6 +151,7 @@ class PrCommandTest {
         stubPullRequestWithTests("OTHER");
 
         var result = run(
+            "pr",
             "42",
             "--repo",
             "some-org/some-repo",
@@ -163,19 +163,20 @@ class PrCommandTest {
             wireMock.baseUrl()
         );
 
-        assertThat(result.exitCode).isZero();
-        assertThat(result.stdout.lines()).contains("Head:  SHA", "Commit: OTHER", "  FooTests > bar()");
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout().lines()).contains("Head:  SHA", "Commit: OTHER", "  FooTests > bar()");
     }
 
     @Test
     void unknown_pr_exits_nonzero() {
         wireMock.stubFor(get(PR_PATH).willReturn(notFound()));
 
-        var result = run("42", "--repo", "some-org/some-repo", "--token", "good", "--base-url", wireMock.baseUrl());
+        var result =
+            run("pr", "42", "--repo", "some-org/some-repo", "--token", "good", "--base-url", wireMock.baseUrl());
 
-        assertThat(result.exitCode).isOne();
-        assertThat(result.stderr).contains("Pull request not found");
-        assertThat(result.stdout).isEmpty();
+        assertThat(result.exitCode()).isOne();
+        assertThat(result.stderr()).contains("Pull request not found");
+        assertThat(result.stdout()).isEmpty();
     }
 
     @ParameterizedTest
@@ -269,6 +270,7 @@ class PrCommandTest {
         stubPullRequestWithTests("SHA");
 
         var result = run(
+            "pr",
             "42",
             "--repo",
             "some-org/some-repo",
@@ -279,29 +281,12 @@ class PrCommandTest {
             wireMock.baseUrl()
         );
 
-        assertThat(result.exitCode).isZero();
-        assertThat(result.stdout).startsWith("Some PR (#42)").contains("FooTests > bar()");
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).startsWith("Some PR (#42)").contains("FooTests > bar()");
     }
 
     private static ResponseDefinitionBuilder json(Object body) {
         return okJson(OBJECT_MAPPER.writeValueAsString(body));
     }
 
-    private static Result run(String... args) {
-        return run(Ansi.OFF, args);
-    }
-
-    private static Result run(Ansi ansi, String... args) {
-        var out = new StringWriter();
-        var err = new StringWriter();
-        var exitCode = new CommandLine(new PrCommand())
-            .setCaseInsensitiveEnumValuesAllowed(true)
-            .setOut(new PrintWriter(out, true))
-            .setErr(new PrintWriter(err, true))
-            .setColorScheme(Help.defaultColorScheme(ansi))
-            .execute(args);
-        return new Result(exitCode, out.toString(), err.toString());
-    }
-
-    private record Result(int exitCode, String stdout, String stderr) {}
 }

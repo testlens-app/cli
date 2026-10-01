@@ -20,7 +20,20 @@ plugins {
     id("org.graalvm.buildtools.native")
 }
 
-version = providers.fileContents(layout.projectDirectory.file("src/main/resources/version.txt")).asText.get().trim()
+val generateVersionFile = tasks.register("generateVersionFile") {
+    inputs.property("version", provider { version })
+    outputs.dir(layout.buildDirectory.dir("generated/version-file"))
+    doFirst {
+        outputs.files.singleFile.resolve("version.txt")
+            .writeText(inputs.properties["version"] as String)
+    }
+}
+
+sourceSets {
+    main {
+        resources.srcDir(generateVersionFile)
+    }
+}
 
 val downloadOpenApiSpec =
     tasks.register("downloadOpenApiSpec") {

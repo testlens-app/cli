@@ -2,6 +2,8 @@ plugins {
     id("app.testlens.gradle.component.application-cli")
 }
 
+version = "0.1.0"
+
 dependencies {
     implementation(libs.diffUtils)
     implementation(libs.jackson.annotations)
