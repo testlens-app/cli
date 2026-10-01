@@ -67,7 +67,6 @@ jobs:
         with:
           name: testlens-cli (${{ matrix.os }})
           path: build/native/nativeCompile/testlens*
-          archive: false
           if-no-files-found: error
 
   dependency-submission:
