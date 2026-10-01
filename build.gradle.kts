@@ -2,7 +2,19 @@ plugins {
     id("app.testlens.gradle.component.application-cli")
 }
 
-version = "0.1.0"
+/**
+ * Releasing:
+ * 1. Change the version to the version that you want to release
+ * 2. Commit the change, but don't push yet
+ *     - commit message: "chore: release 1.x.x"
+ * 3. Tag the commit as `v<version>` where `<version>` is the version you want to release
+ *     - run: git tag -s v1.x.x -m v1.x.x
+ * 3. Change the version to the next development SNAPSHOT version
+ * 4. Commit the change:
+ *     - commit message: "chore: use next snapshot version"
+ * 5. Push everything by running `git push --follow-tags`
+ */
+version = "1.0.0-SNAPSHOT"
 
 dependencies {
     implementation(libs.diffUtils)
