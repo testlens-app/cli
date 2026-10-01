@@ -14,6 +14,7 @@ plugins {
     id("app.testlens.gradle.check.format-java")
     id("app.testlens.gradle.check.javac-lint")
     id("app.testlens.gradle.feature.java-compile")
+    id("app.testlens.gradle.feature.release")
     id("app.testlens.gradle.feature.test")
     id("application")
     id("org.openapi.generator")
