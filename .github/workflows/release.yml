@@ -67,3 +67,4 @@ jobs:
           draft: true
           make_latest: true
           files: testlens-*
+          tag_name: ${{ github.ref_name }}
