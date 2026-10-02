@@ -14,7 +14,7 @@ plugins {
  *     - commit message: "chore: use next snapshot version"
  * 5. Push everything by running `git push --follow-tags`
  */
-version = "1.0.0-SNAPSHOT"
+version = "1.0.0-rc-1"
 
 dependencies {
     implementation(libs.diffUtils)
