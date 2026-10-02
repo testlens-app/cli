@@ -16,12 +16,7 @@ val assembleReleaseArchive = tasks.register<Zip>("assembleReleaseArchive") {
         os.isWindows -> "windows"
         else -> error("Unsupported OS: $os")
     }
-    val arch = System.getProperty("os.arch")
-    val archName = when(arch) {
-        "amd64", "x86_64" -> "x86_64"
-        "aarch64" -> "aarch_64"
-        else -> error("Unsupported arch: $arch")
-    }
+    val archName = System.getProperty("os.arch")
     archiveBaseName = "testlens-$osName-$archName"
 }
 
