@@ -13,7 +13,7 @@ class VersionTest {
         var result = run("--version");
 
         assertThat(result.exitCode()).isZero();
-        assertThat(result.stdout().trim()).matches("\\d+(\\.\\d+)+(-SNAPSHOT)?");
+        assertThat(result.stdout().trim()).matches("\\d+(\\.\\d+)+(-SNAPSHOT|-rc-\\d+)?");
         assertThat(result.stderr()).isEmpty();
     }
 }
