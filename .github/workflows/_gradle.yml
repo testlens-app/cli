@@ -66,13 +66,13 @@ jobs:
           build-scan-terms-of-use-url: https://gradle.com/terms-of-service
           build-scan-terms-of-use-agree: yes
       - uses: testlens-app/setup-testlens@d29a2be31512b3aeda3adcef09fbe0d55af90c51 # v1.9.4
-      - run: ./gradlew nativeCompile
+      - run: ./gradlew assembleReleaseArchive
       - name: Smoke test native image
         run: build/native/nativeCompile/testlens --help
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: testlens-${{ matrix.os.label }}
-          path: build/native/nativeCompile/testlens*
+          path: build/release/testlens-*.zip
+          archive: false
           if-no-files-found: error
 
   dependency-submission:
