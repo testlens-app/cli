@@ -53,6 +53,9 @@ final class PrDetailsView {
 
     Element render() {
         var test = controller.selectedTest();
+        if (test == null) {
+            return panel(detailsArea.fill()).rounded().borderColor(Color.DARK_GRAY).fill();
+        }
         var executionIndex = controller.selectedExecutionIndex();
         var executions = test.getExecutions();
 

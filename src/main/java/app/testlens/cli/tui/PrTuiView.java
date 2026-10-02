@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui;
 
+import static dev.tamboui.style.Color.YELLOW;
 import static dev.tamboui.toolkit.Toolkit.column;
+import static dev.tamboui.toolkit.Toolkit.dialog;
+import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.text;
 
 import dev.tamboui.toolkit.element.Element;
@@ -24,10 +27,14 @@ final class PrTuiView {
     }
 
     Element render() {
-        if (!controller.hasTests()) {
-            return column(header.render(), text("No failed or flaky tests.").fill());
+        var content = column(header.render(), testTable.render(), details.render(), footer.render());
+        if (controller.hasTests()) {
+            return content;
         }
-        return column(header.render(), testTable.render(), details.render(), footer.render());
+        var message = "No failing tests detected on pull request #" + controller.prResponse().getNumber();
+        return stack(
+            content,
+            dialog(text(message)).rounded().borderColor(YELLOW).width(message.length() + 4)
+        );
     }
-
 }

@@ -56,7 +56,12 @@ application {
     mainModule = "app.testlens.cli"
     mainClass = "app.testlens.cli.Testlens"
     applicationName = "testlens"
-    applicationDefaultJvmArgs = listOf("--enable-native-access=dev.tamboui.panama.backend")
+    // tamboui 0.5.0 DialogElement uses dev.tamboui.widgets.Clear, which the widgets module does not export to toolkit
+    applicationDefaultJvmArgs =
+        listOf(
+            "--enable-native-access=dev.tamboui.panama.backend",
+            "--add-exports=dev.tamboui.widgets/dev.tamboui.widgets=dev.tamboui.toolkit",
+        )
 }
 
 tasks.test {

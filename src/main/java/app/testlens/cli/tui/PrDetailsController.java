@@ -36,8 +36,9 @@ final class PrDetailsController {
         updateDetailsArea();
     }
 
+    @Nullable
     ExecutedTest selectedTest() {
-        return requireNonNull(selectedTest);
+        return selectedTest;
     }
 
     int selectedExecutionIndex() {
@@ -53,7 +54,7 @@ final class PrDetailsController {
     }
 
     Execution selectedExecution() {
-        return selectedTest().getExecutions().get(selectedExecutionIndex());
+        return requireNonNull(selectedTest).getExecutions().get(selectedExecutionIndex());
     }
 
     void selectTest(ExecutedTest test) {
@@ -63,11 +64,14 @@ final class PrDetailsController {
     }
 
     EventResult handleKey(KeyEvent event) {
+        if (selectedTest == null) {
+            return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
+        }
         if (keyHandler.apply(event).isHandled()) {
             return EventResult.HANDLED;
         }
         // handled regardless of focus, so executions can be switched while browsing tests
-        var executionCount = selectedTest().getExecutions().size();
+        var executionCount = requireNonNull(selectedTest).getExecutions().size();
         if (event.isLeft()) {
             var previousExecution = selectedExecutionIndex();
             tabsState.select(Math.max(0, previousExecution - 1));
@@ -88,7 +92,7 @@ final class PrDetailsController {
     }
 
     private void updateDetailsArea() {
-        if (onSelectedExecution != null) {
+        if (onSelectedExecution != null && selectedTest != null) {
             onSelectedExecution.accept(selectedExecution());
         }
     }

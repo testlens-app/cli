@@ -66,9 +66,9 @@ final class PrTestsTableView {
     Element render() {
         table.borderColor(controller.isFocused() ? Color.CYAN : Color.DARK_GRAY);
         var tests = controller.tests();
-        return testTableWithScrollbar(
-            Constraint.length(Math.min(tests.size(), MAX_VISIBLE_TESTS) + TABLE_CHROME_HEIGHT)
-        );
+        // reserve space for a full table even when empty, so the popup has a natural backdrop
+        var rowCount = tests.isEmpty() ? MAX_VISIBLE_TESTS : tests.size();
+        return testTableWithScrollbar(Constraint.length(Math.min(rowCount, MAX_VISIBLE_TESTS) + TABLE_CHROME_HEIGHT));
     }
 
     private Element testTableWithScrollbar(Constraint constraint) {

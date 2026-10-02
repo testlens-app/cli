@@ -204,6 +204,65 @@ class PrTuiTest {
         assertThat(PrTuiUtils.abbreviatedTestName(List.of("JUnit Jupiter", "FooTests"), 5)).isEqualTo("FooT…");
     }
 
+    @Test
+    void colors_execution_tabs_by_outcome() {
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(
+                    executedTest(
+                        "foo()",
+                        execution(OutcomeEnum.SUCCESSFUL).htmlUrl(JOB_URL),
+                        execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)
+                    )
+                ),
+            new FocusManager()
+        );
+        var view = new PrTuiView(controller);
+        var buffer = renderBuffer(view, 120);
+        var screen = render(view).lines().toList();
+        var row = screen.stream().filter(line -> line.contains("#1 SUCCESSFUL")).findFirst().orElseThrow();
+        assertThat(row).startsWith("╭ #1 SUCCESSFUL ─ #2 FAILED");
+        var y = screen.indexOf(row);
+        assertThat(buffer.get(row.indexOf("#1"), y).style().fg()).contains(Color.GREEN);
+        assertThat(buffer.get(row.indexOf("#1") - 1, y).style().fg()).contains(Color.GREEN);
+        assertThat(buffer.get(row.indexOf("#2"), y).style().fg()).contains(Color.RED);
+        var selectedPadding = buffer.get(row.indexOf("#2") - 1, y).style();
+        assertThat(selectedPadding.fg()).contains(Color.RED);
+        assertThat(selectedPadding.effectiveModifiers()).contains(Modifier.REVERSED);
+    }
+
+    @Test
+    void doesnt_crash_for_PRs_without_tests() {
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(3).title("PR without Tests"),
+            new PullRequestTestsResponse().sha("SHA"),
+            new FocusManager()
+        );
+        var view = new PrTuiView(controller);
+
+        assertThat(render(view)).contains("No failing tests detected on pull request #3");
+    }
+
+    @Test
+    void keys_are_handled_without_crashing_for_PRs_without_tests() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(3).title("PR without Tests"),
+            new PullRequestTestsResponse().sha("SHA"),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+
+        assertThat(controller.testTableController().handleKey(new KeyEvent(KeyCode.DOWN, KeyModifiers.NONE, 0)))
+            .isEqualTo(EventResult.UNHANDLED);
+        assertThat(controller.detailsController().handleKey(new KeyEvent(KeyCode.RIGHT, KeyModifiers.NONE, 0)))
+            .isEqualTo(EventResult.UNHANDLED);
+
+        focusManager.setFocus(PrDetailsController.VIEW_ID);
+        assertThat(render(view)).contains("No failing tests detected on pull request #3");
+    }
+
     private static Execution execution(OutcomeEnum outcome) {
         return new Execution().outcome(outcome).startTime(START_TIME).durationMillis(1500L);
     }
@@ -256,31 +315,4 @@ class PrTuiTest {
         return renderBuffer(view, width, context);
     }
 
-    @Test
-    void colors_execution_tabs_by_outcome() {
-        var controller = new PrTuiController(
-            new PullRequestResponse().number(42).title("Some PR"),
-            new PullRequestTestsResponse().sha("SHA")
-                .addTestsItem(
-                    executedTest(
-                        "foo()",
-                        execution(OutcomeEnum.SUCCESSFUL).htmlUrl(JOB_URL),
-                        execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)
-                    )
-                ),
-            new FocusManager()
-        );
-        var view = new PrTuiView(controller);
-        var buffer = renderBuffer(view, 120);
-        var screen = render(view).lines().toList();
-        var row = screen.stream().filter(line -> line.contains("#1 SUCCESSFUL")).findFirst().orElseThrow();
-        assertThat(row).startsWith("╭ #1 SUCCESSFUL ─ #2 FAILED");
-        var y = screen.indexOf(row);
-        assertThat(buffer.get(row.indexOf("#1"), y).style().fg()).contains(Color.GREEN);
-        assertThat(buffer.get(row.indexOf("#1") - 1, y).style().fg()).contains(Color.GREEN);
-        assertThat(buffer.get(row.indexOf("#2"), y).style().fg()).contains(Color.RED);
-        var selectedPadding = buffer.get(row.indexOf("#2") - 1, y).style();
-        assertThat(selectedPadding.fg()).contains(Color.RED);
-        assertThat(selectedPadding.effectiveModifiers()).contains(Modifier.REVERSED);
-    }
 }
