@@ -57,6 +57,9 @@ final class PrTestsTableController {
     }
 
     EventResult handleKey(KeyEvent event) {
+        if (tests.isEmpty()) {
+            return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
+        }
         if (keyHandler.apply(event).isHandled()) {
             return EventResult.HANDLED;
         }
