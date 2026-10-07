@@ -18,6 +18,11 @@ val assembleReleaseArchive = tasks.register<Zip>("assembleReleaseArchive") {
     }
     val archName = System.getProperty("os.arch")
     archiveBaseName = "testlens-$osName-$archName"
+    filePermissions {
+        user.execute = true
+        group.execute = true
+        other.execute = true
+    }
 }
 
 signing {
