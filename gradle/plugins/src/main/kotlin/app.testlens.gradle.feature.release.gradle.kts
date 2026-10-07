@@ -23,7 +23,8 @@ val assembleReleaseArchive = tasks.register<Zip>("assembleReleaseArchive") {
             read = true
             execute = true
         }
-        other.execute = false
+        group.execute = true
+        other.execute = true
     }
 }
 
