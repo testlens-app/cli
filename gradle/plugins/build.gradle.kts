@@ -15,7 +15,7 @@ dependencies {
     implementation("net.ltgt.nullaway:net.ltgt.nullaway.gradle.plugin:3.3.0")
     implementation("org.gradlex:jvm-dependency-conflict-resolution:2.5")
     implementation("org.gradlex:reproducible-builds:1.1")
-    implementation("org.openapitools:openapi-generator-gradle-plugin:7.25.0")
+    implementation("org.openapitools:openapi-generator-gradle-plugin:7.26.0")
     implementation("com.atkinsondev.gradle:object-store-cache-plugin:3.1.0")
     implementation("tools.jackson.core:jackson-databind:3.2.3")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
