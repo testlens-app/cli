@@ -5,6 +5,8 @@
 
 TestLens CLI — see https://testlens.app.
 
+<a href="https://asciinema.org/a/1267842" target="_blank"><img src="https://asciinema.org/a/1267842.svg" /></a>
+
 Find the full documentation including installation instructions at https://testlens.app/docs/features/cli.
 
 ## Build from Source
