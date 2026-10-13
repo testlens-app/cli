@@ -21,7 +21,7 @@ picocli = { module = "info.picocli:picocli", version = "4.7.7" }
 picocli-codegen = { module = "info.picocli:picocli-codegen", version = "4.7.7" }
 slf4j-bom = { module = "org.slf4j:slf4j-bom", version = "2.0.20" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple" }
-tamboui-bom = { module = "dev.tamboui:tamboui-bom", version = "0.5.0" }
+tamboui-bom = { module = "dev.tamboui:tamboui-bom", version = "0.6.0" }
 tamboui-core = { module = "dev.tamboui:tamboui-core" }
 tamboui-panamaBackend = { module = "dev.tamboui:tamboui-panama-backend" }
 tamboui-toolkit = { module = "dev.tamboui:tamboui-toolkit" }
