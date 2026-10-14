@@ -68,9 +68,9 @@ final class PrTestsTableController {
         }
         var selected = (int) state.selected();
         int target;
-        if (event.isUp()) {
+        if (event.isUp() || event.isChar('k')) {
             target = selected - 1;
-        } else if (event.isDown()) {
+        } else if (event.isDown() || event.isChar('j')) {
             target = selected + 1;
         } else if (event.isPageUp()) {
             target = selected - PrTestsTableView.MAX_VISIBLE_TESTS;

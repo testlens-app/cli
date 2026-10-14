@@ -8,7 +8,9 @@ import dev.tamboui.toolkit.element.Element;
 final class PrFooterView {
 
     Element render() {
-        return text("↑/↓ select test/scroll details · ←/→ select execution · Enter/Esc/Tab switch pane · q quit")
+        return text(
+            "↑/↓ or j/k select test/scroll details · ←/→ or h/l select execution · Enter/Esc/Tab switch pane · q quit"
+        )
             .dim()
             .length(1);
     }

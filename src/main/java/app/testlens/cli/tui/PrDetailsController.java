@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
+import dev.tamboui.toolkit.elements.RichTextAreaElement;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyEvent;
@@ -21,6 +22,7 @@ final class PrDetailsController {
     private final FocusManager focusManager;
     private final TabsState tabsState = new TabsState();
     private @Nullable Consumer<Execution> onSelectedExecution;
+    private @Nullable RichTextAreaElement detailsArea;
     private @Nullable ExecutedTest selectedTest;
 
     PrDetailsController(Function<KeyEvent, EventResult> keyHandler, FocusManager focusManager) {
@@ -34,6 +36,13 @@ final class PrDetailsController {
         }
         this.onSelectedExecution = onSelectedExecution;
         updateDetailsArea();
+    }
+
+    void bindDetailsArea(RichTextAreaElement detailsArea) {
+        if (this.detailsArea != null) {
+            throw new IllegalStateException("detailsArea was already set");
+        }
+        this.detailsArea = detailsArea;
     }
 
     @Nullable
@@ -72,7 +81,7 @@ final class PrDetailsController {
         }
         // handled regardless of focus, so executions can be switched while browsing tests
         var executionCount = requireNonNull(selectedTest).getExecutions().size();
-        if (event.isLeft()) {
+        if (event.isLeft() || event.isChar('h')) {
             var previousExecution = selectedExecutionIndex();
             tabsState.select(Math.max(0, previousExecution - 1));
             if (selectedExecutionIndex() != previousExecution) {
@@ -80,7 +89,7 @@ final class PrDetailsController {
             }
             return EventResult.HANDLED;
         }
-        if (event.isRight()) {
+        if (event.isRight() || event.isChar('l')) {
             var previousExecution = selectedExecutionIndex();
             tabsState.select(Math.min(executionCount - 1, previousExecution + 1));
             if (selectedExecutionIndex() != previousExecution) {
@@ -88,7 +97,18 @@ final class PrDetailsController {
             }
             return EventResult.HANDLED;
         }
-        return EventResult.UNHANDLED;
+        if (!isFocused()) {
+            return EventResult.UNHANDLED;
+        }
+        var textState = requireNonNull(detailsArea).state();
+        if (event.isChar('j')) {
+            textState.scrollDown();
+        } else if (event.isChar('k')) {
+            textState.scrollUp();
+        } else {
+            return EventResult.UNHANDLED;
+        }
+        return EventResult.HANDLED;
     }
 
     private void updateDetailsArea() {

@@ -15,6 +15,7 @@ import app.testlens.cli.util.TimeFormat;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
 import dev.tamboui.style.Color;
+import dev.tamboui.style.RichTextState;
 import dev.tamboui.style.Style;
 import dev.tamboui.terminal.Frame;
 import dev.tamboui.text.Line;
@@ -46,9 +47,14 @@ final class PrDetailsView {
             .scrollbar(ScrollBarPolicy.AS_NEEDED)
             .focusable()
             .onKeyEvent(controller::handleKey);
+        controller.bindDetailsArea(detailsArea);
         controller.onSelectedExecution(
             execution -> detailsArea.text(PrDetailsView.detailsContent(execution)).scrollToLine(0)
         );
+    }
+
+    RichTextState detailsState() {
+        return detailsArea.state();
     }
 
     Element render() {
