@@ -16,7 +16,7 @@ public final class PrTui {
             // the modal "no tests" dialog consumes all keys before unfocused-element routing,
             // so quit has to be handled globally, ahead of the dialog
             runner.eventRouter().addGlobalHandler(event -> {
-                if (event instanceof KeyEvent keyEvent && keyEvent.isQuit()) {
+                if (event instanceof KeyEvent keyEvent && keyEvent.isQuit() && !controller.isSearching()) {
                     runner.quit();
                     return EventResult.HANDLED;
                 }

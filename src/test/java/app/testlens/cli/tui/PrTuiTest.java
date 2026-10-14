@@ -264,33 +264,7 @@ class PrTuiTest {
     }
 
     @Test
-    void vim_keys_navigate_the_tests_table() {
-        var focusManager = new FocusManager();
-        var controller = new PrTuiController(
-            new PullRequestResponse().number(42).title("Some PR"),
-            new PullRequestTestsResponse().sha("SHA")
-                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
-                .addTestsItem(executedTest("bar()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
-                .addTestsItem(executedTest("baz()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
-            focusManager
-        );
-        var view = new PrTuiView(controller);
-        renderBuffer(view, 120);
-        focusManager.setFocus(PrTestsTableController.VIEW_ID);
-        var table = controller.testTableController();
-
-        table.handleKey(KeyEvent.ofChar('j'));
-        assertThat(table.tableState().selected()).isEqualTo(1);
-        table.handleKey(KeyEvent.ofChar('j'));
-        table.handleKey(KeyEvent.ofChar('j'));
-        assertThat(table.tableState().selected()).isEqualTo(2);
-        table.handleKey(KeyEvent.ofChar('k'));
-        table.handleKey(KeyEvent.ofChar('k'));
-        assertThat(table.tableState().selected()).isZero();
-    }
-
-    @Test
-    void vim_keys_scroll_and_switch_executions_in_the_details_pane() {
+    void vim_keys_scroll_the_details_pane() {
         var focusManager = new FocusManager();
         var controller = new PrTuiController(
             new PullRequestResponse().number(42).title("Some PR"),
@@ -345,6 +319,177 @@ class PrTuiTest {
         assertThat(state.scrollRow()).isEqualTo(1);
         details.handleKey(KeyEvent.ofChar('k'));
         assertThat(state.scrollRow()).isZero();
+    }
+
+    @Test
+    void search_continuously_filters_the_test_list() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("bar()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("baz()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('/'));
+        assertThat(table.isSearching()).isTrue();
+        table.handleKey(KeyEvent.ofChar('b'));
+        assertThat(table.tests()).hasSize(2);
+        // the best match is selected while searching
+        assertThat(table.tableState().selected()).isZero();
+        assertThat(render(view)).doesNotContain("FooTests > foo()");
+        table.handleKey(KeyEvent.ofChar('z'));
+        assertThat(table.tests()).hasSize(1);
+        assertThat(table.tableState().selected()).isZero();
+
+        // Enter keeps the filter...
+        table.handleKey(new KeyEvent(KeyCode.ENTER, KeyModifiers.NONE, 0));
+        assertThat(table.isSearching()).isFalse();
+        assertThat(table.tests()).hasSize(1);
+        // ...and a new search resets it back to the full list
+        table.handleKey(KeyEvent.ofChar('/'));
+        assertThat(table.isSearching()).isTrue();
+        assertThat(table.tests()).hasSize(3);
+        assertThat(table.tableState().selected()).isZero();
+
+        // cancelling keeps the list reset and stays on the selected test
+        table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
+        assertThat(table.isSearching()).isFalse();
+        assertThat(controller.isSearching()).isFalse();
+        assertThat(table.tests()).hasSize(3);
+        assertThat(table.tableState().selected()).isZero();
+    }
+
+    @Test
+    void search_orders_best_matches_first() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("alphatest()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("alphabet()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("beta()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('/'));
+        for (var c : "alphat".toCharArray()) {
+            table.handleKey(KeyEvent.ofChar(c));
+        }
+        // in "alphatest()" the final "t" extends the consecutive match, in "alphabet()" it is a gap
+        assertThat(table.tests().stream().map(test -> test.getDisplayNames().get(2)).toList())
+            .containsExactly("alphatest()", "alphabet()");
+        assertThat(table.tableState().selected()).isZero();
+    }
+
+    @Test
+    void search_highlights_matched_characters() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("bar()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('/'));
+        table.handleKey(KeyEvent.ofChar('f'));
+        table.handleKey(KeyEvent.ofChar('o'));
+        table.handleKey(KeyEvent.ofChar('o'));
+        var buffer = renderBuffer(view, 120);
+        var screen = render(view).lines().toList();
+        var selectedRow = screen.stream().filter(line -> line.contains("FooTests > foo()")).findFirst().orElseThrow();
+        var y = screen.indexOf(selectedRow);
+        var firstMatch = selectedRow.indexOf("FooTests > foo()");
+
+        // "Foo" at the start of the test name matched the query and is highlighted
+        for (int x = firstMatch; x < firstMatch + 3; x++) {
+            var style = buffer.get(x, y).style().effectiveModifiers();
+            assertThat(style).contains(Modifier.BOLD).contains(Modifier.UNDERLINED);
+        }
+        // the trailing "Tests > foo()" is not part of the greedy match
+        assertThat(buffer.get(firstMatch + 3, y).style().effectiveModifiers()).doesNotContain(Modifier.BOLD);
+        // the query also matches the shared class name prefix of the second row
+        var otherRow = screen.stream().filter(line -> line.contains("FooTests > bar()")).findFirst().orElseThrow();
+        var otherY = screen.indexOf(otherRow);
+        var otherName = otherRow.indexOf("FooTests > bar()");
+        var otherStyle = buffer.get(otherName, otherY).style().effectiveModifiers();
+        assertThat(otherStyle).contains(Modifier.BOLD).contains(Modifier.UNDERLINED);
+        assertThat(buffer.get(otherName + 3, otherY).style().effectiveModifiers()).doesNotContain(Modifier.BOLD);
+    }
+
+    @Test
+    void search_shows_the_search_term_in_the_footer() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('/'));
+        table.handleKey(KeyEvent.ofChar('f'));
+        assertThat(render(view)).contains("/f");
+
+        table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
+        assertThat(render(view)).doesNotContain("/f");
+    }
+
+    @Test
+    void search_keys_are_swallowed_when_the_filter_matches_nothing() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('/'));
+        table.handleKey(KeyEvent.ofChar('x'));
+        table.handleKey(KeyEvent.ofChar('y'));
+        assertThat(table.tests()).isEmpty();
+        assertThat(table.isSearching()).isTrue();
+
+        // typing continues into the search, navigation keys cannot move focus away
+        table.handleKey(KeyEvent.ofChar('j'));
+        assertThat(table.isSearching()).isTrue();
+        assertThat(table.searchQuery()).isEqualTo("xyj");
+        // Enter commits the search instead of switching to the details pane
+        table.handleKey(new KeyEvent(KeyCode.ENTER, KeyModifiers.NONE, 0));
+        assertThat(table.isSearching()).isFalse();
+        assertThat(focusManager.focusedId()).isEqualTo(PrTestsTableController.VIEW_ID);
+
+        // Esc restores the full list and ends the search
+        table.handleKey(KeyEvent.ofChar('/'));
+        table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
+        assertThat(table.isSearching()).isFalse();
+        assertThat(table.tests()).hasSize(1);
+        assertThat(table.tableState().selected()).isZero();
     }
 
     private static Execution execution(OutcomeEnum outcome) {

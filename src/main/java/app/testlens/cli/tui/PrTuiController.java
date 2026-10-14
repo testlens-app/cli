@@ -47,6 +47,10 @@ final class PrTuiController {
         return !testsResponse.getTests().isEmpty();
     }
 
+    boolean isSearching() {
+        return testTableController.isSearching();
+    }
+
     PrTestsTableController testTableController() {
         return testTableController;
     }
