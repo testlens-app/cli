@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.controller;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
@@ -8,6 +8,7 @@ import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
+import app.testlens.cli.tui.view.PrTestsTableView;
 import dev.tamboui.widgets.table.TableState;
 import java.util.Comparator;
 import java.util.List;
@@ -17,9 +18,9 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import org.jspecify.annotations.Nullable;
 
-final class PrTestsTableController {
+public final class PrTestsTableController {
 
-    static final String VIEW_ID = "tests";
+    public static final String VIEW_ID = "tests";
 
     private final Function<KeyEvent, EventResult> keyHandler;
     private final FocusManager focusManager;
@@ -32,7 +33,7 @@ final class PrTestsTableController {
     private final StringBuilder query = new StringBuilder();
     private @Nullable ExecutedTest selected;
 
-    PrTestsTableController(
+    public PrTestsTableController(
         Function<KeyEvent, EventResult> keyHandler,
         FocusManager focusManager,
         PullRequestTestsResponse tests,
@@ -49,31 +50,31 @@ final class PrTestsTableController {
     }
 
     // the (continuously filtered) list currently shown in the table
-    List<ExecutedTest> tests() {
+    public List<ExecutedTest> tests() {
         return visibleTests;
     }
 
-    TableState tableState() {
+    public TableState tableState() {
         return state;
     }
 
-    boolean isFocused() {
+    public boolean isFocused() {
         return focusManager.isFocused(VIEW_ID);
     }
 
-    boolean isSearching() {
+    public boolean isSearching() {
         return searching;
     }
 
-    boolean isSearchCommitted() {
+    public boolean isSearchCommitted() {
         return searchCommitted;
     }
 
-    String searchQuery() {
+    public String searchQuery() {
         return query.toString();
     }
 
-    void selectTest(int index) {
+    public void selectTest(int index) {
         if (!Objects.equals(index, state.selected())) {
             selected = visibleTests.get(index);
             state.select(index);
@@ -81,7 +82,7 @@ final class PrTestsTableController {
         }
     }
 
-    EventResult handleKey(KeyEvent event) {
+    public EventResult handleKey(KeyEvent event) {
         // search keys are handled first, so an empty filtered list cannot hijack navigation keys
         if (searching) {
             // pane switching stays available while searching

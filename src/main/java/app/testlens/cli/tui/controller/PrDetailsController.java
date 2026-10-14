@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.controller;
 
 import static java.util.Objects.requireNonNull;
 
@@ -14,9 +14,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
-final class PrDetailsController {
+public final class PrDetailsController {
 
-    static final String VIEW_ID = "details";
+    public static final String VIEW_ID = "details";
 
     private final Function<KeyEvent, EventResult> keyHandler;
     private final FocusManager focusManager;
@@ -25,12 +25,12 @@ final class PrDetailsController {
     private @Nullable RichTextAreaElement detailsArea;
     private @Nullable ExecutedTest selectedTest;
 
-    PrDetailsController(Function<KeyEvent, EventResult> keyHandler, FocusManager focusManager) {
+    public PrDetailsController(Function<KeyEvent, EventResult> keyHandler, FocusManager focusManager) {
         this.keyHandler = keyHandler;
         this.focusManager = focusManager;
     }
 
-    void onSelectedExecution(Consumer<Execution> onSelectedExecution) {
+    public void onSelectedExecution(Consumer<Execution> onSelectedExecution) {
         if (this.onSelectedExecution != null) {
             throw new IllegalStateException("onSelectedExecution was already set");
         }
@@ -38,7 +38,7 @@ final class PrDetailsController {
         updateDetailsArea();
     }
 
-    void bindDetailsArea(RichTextAreaElement detailsArea) {
+    public void bindDetailsArea(RichTextAreaElement detailsArea) {
         if (this.detailsArea != null) {
             throw new IllegalStateException("detailsArea was already set");
         }
@@ -46,33 +46,33 @@ final class PrDetailsController {
     }
 
     @Nullable
-    ExecutedTest selectedTest() {
+    public ExecutedTest selectedTest() {
         return selectedTest;
     }
 
-    int selectedExecutionIndex() {
+    public int selectedExecutionIndex() {
         return requireNonNull(tabsState.selected());
     }
 
-    TabsState tabsState() {
+    public TabsState tabsState() {
         return tabsState;
     }
 
-    boolean isFocused() {
+    public boolean isFocused() {
         return focusManager.isFocused(VIEW_ID);
     }
 
-    Execution selectedExecution() {
+    public Execution selectedExecution() {
         return requireNonNull(selectedTest).getExecutions().get(selectedExecutionIndex());
     }
 
-    void selectTest(ExecutedTest test) {
+    public void selectTest(ExecutedTest test) {
         selectedTest = test;
         tabsState.select(test.getExecutions().size() - 1);
         updateDetailsArea();
     }
 
-    EventResult handleKey(KeyEvent event) {
+    public EventResult handleKey(KeyEvent event) {
         if (selectedTest == null) {
             return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
         }

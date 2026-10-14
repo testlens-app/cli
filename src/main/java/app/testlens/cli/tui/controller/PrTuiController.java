@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.controller;
 
 import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
@@ -10,7 +10,7 @@ import dev.tamboui.tui.event.KeyEvent;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
-final class PrTuiController {
+public final class PrTuiController {
 
     private static final List<String> VIEW_IDS = List.of(PrTestsTableController.VIEW_ID, PrDetailsController.VIEW_ID);
 
@@ -20,7 +20,7 @@ final class PrTuiController {
     private final PrDetailsController detailsController;
     private final PrTestsTableController testTableController;
 
-    PrTuiController(PullRequestResponse prResponse, PullRequestTestsResponse testsResponse, FocusManager focusManager) {
+    public PrTuiController(PullRequestResponse prResponse, PullRequestTestsResponse testsResponse, FocusManager focusManager) {
         this.prResponse = prResponse;
         this.testsResponse = testsResponse;
         this.focusManager = focusManager;
@@ -36,35 +36,35 @@ final class PrTuiController {
         );
     }
 
-    PullRequestResponse prResponse() {
+    public PullRequestResponse prResponse() {
         return prResponse;
     }
 
-    PullRequestTestsResponse testsResponse() {
+    public PullRequestTestsResponse testsResponse() {
         return testsResponse;
     }
 
-    boolean hasTests() {
+    public boolean hasTests() {
         return !testsResponse.getTests().isEmpty();
     }
 
-    boolean isSearching() {
+    public boolean isSearching() {
         return testTableController.isSearching();
     }
 
-    PrTestsTableController testTableController() {
+    public PrTestsTableController testTableController() {
         return testTableController;
     }
 
-    PrDetailsController detailsController() {
+    public PrDetailsController detailsController() {
         return detailsController;
     }
 
-    boolean isFocused(String id) {
+    public boolean isFocused(String id) {
         return focusManager.isFocused(id);
     }
 
-    EventResult navigate(KeyEvent event, String viewId) {
+    public EventResult navigate(KeyEvent event, String viewId) {
         if (!isFocused(viewId)) {
             return EventResult.UNHANDLED;
         }

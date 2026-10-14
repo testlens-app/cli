@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.view;
 
-import static app.testlens.cli.tui.PrTuiUtils.abbreviatedTestName;
-import static app.testlens.cli.tui.PrTuiUtils.outcomeColor;
-import static app.testlens.cli.tui.PrTuiUtils.truncate;
+import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
+import static app.testlens.cli.tui.view.PrTuiUtils.outcomeColor;
+import static app.testlens.cli.tui.view.PrTuiUtils.truncate;
 import static dev.tamboui.toolkit.Toolkit.table;
 import static java.util.stream.Collectors.toSet;
 
 import app.testlens.cli.client.model.ExecutedTest;
+import app.testlens.cli.tui.controller.PrTestsTableController;
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.client.model.Execution.OutcomeEnum;
 import app.testlens.cli.util.FuzzySearch;
@@ -33,9 +34,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
-final class PrTestsTableView {
+public final class PrTestsTableView {
 
-    static final int MAX_VISIBLE_TESTS = 10;
+    public static final int MAX_VISIBLE_TESTS = 10;
     private static final String OUTCOME = "Outcome";
     private static final String JOB = "Job";
     private static final String WORK_UNIT_LABEL = "Project/Task";
@@ -53,7 +54,7 @@ final class PrTestsTableView {
     private int tableWidth = -1;
     private List<ExecutedTest> lastTests;
 
-    PrTestsTableView(PrTestsTableController controller) {
+    public PrTestsTableView(PrTestsTableController controller) {
         this.controller = controller;
         this.lastTests = controller.tests();
         table = table()
@@ -69,7 +70,7 @@ final class PrTestsTableView {
             .onKeyEvent(controller::handleKey);
     }
 
-    Element render() {
+    public Element render() {
         table.borderColor(controller.isFocused() ? Color.CYAN : Color.DARK_GRAY);
         var tests = controller.tests();
         // reserve space for a full table even when empty, so the popup has a natural backdrop

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.view;
 
-import static app.testlens.cli.tui.PrTuiUtils.abbreviatedTestName;
-import static app.testlens.cli.tui.PrTuiUtils.outcomeColor;
+import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
+import static app.testlens.cli.tui.view.PrTuiUtils.outcomeColor;
 import static dev.tamboui.toolkit.Toolkit.panel;
 import static dev.tamboui.toolkit.Toolkit.richText;
 import static dev.tamboui.toolkit.Toolkit.richTextArea;
 
 import app.testlens.cli.PrCommand;
+import app.testlens.cli.tui.controller.PrDetailsController;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.util.TextDiff;
@@ -31,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 
-final class PrDetailsView {
+public final class PrDetailsView {
 
     private static final int DETAILS_HEADER_HEIGHT = 5;
     private static final int DETAILS_LABEL_WIDTH = "Where: ".length();
@@ -39,7 +40,7 @@ final class PrDetailsView {
     private final PrDetailsController controller;
     private final RichTextAreaElement detailsArea;
 
-    PrDetailsView(PrDetailsController controller) {
+    public PrDetailsView(PrDetailsController controller) {
         this.controller = controller;
         this.detailsArea = richTextArea()
             .id(PrDetailsController.VIEW_ID)
@@ -53,11 +54,11 @@ final class PrDetailsView {
         );
     }
 
-    RichTextState detailsState() {
+    public RichTextState detailsState() {
         return detailsArea.state();
     }
 
-    Element render() {
+    public Element render() {
         var test = controller.selectedTest();
         if (test == null) {
             return panel(detailsArea.fill()).rounded().borderColor(Color.DARK_GRAY).fill();
