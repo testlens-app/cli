@@ -6,6 +6,7 @@ import app.testlens.cli.client.model.PullRequestTestsResponse;
 import app.testlens.cli.util.FuzzySearch;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
+import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
 import dev.tamboui.widgets.table.TableState;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ final class PrTestsTableController {
     private final Consumer<ExecutedTest> onSelectedTest;
     private final TableState state = new TableState();
     private boolean searching;
+    private boolean searchCommitted;
     private final StringBuilder query = new StringBuilder();
     private @Nullable ExecutedTest selected;
 
@@ -63,6 +65,10 @@ final class PrTestsTableController {
         return searching;
     }
 
+    boolean isSearchCommitted() {
+        return searchCommitted;
+    }
+
     String searchQuery() {
         return query.toString();
     }
@@ -78,14 +84,26 @@ final class PrTestsTableController {
     EventResult handleKey(KeyEvent event) {
         // search keys are handled first, so an empty filtered list cannot hijack navigation keys
         if (searching) {
+            // pane switching stays available while searching
+            if (event.isKey(KeyCode.TAB)) {
+                return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
+            }
             handleSearchKey(event);
             return EventResult.HANDLED;
         }
         if (isFocused() && event.isChar('/')) {
             searching = true;
+            searchCommitted = false;
             query.setLength(0);
             // starting a new search resets a committed filter back to the full list
             applyFilter(true);
+            return EventResult.HANDLED;
+        }
+        if (searchCommitted && event.isKey(KeyCode.ESCAPE)) {
+            // resetting a committed search restores the full, unfiltered list
+            searchCommitted = false;
+            query.setLength(0);
+            applyFilter(false);
             return EventResult.HANDLED;
         }
         if (visibleTests.isEmpty()) {
@@ -121,11 +139,16 @@ final class PrTestsTableController {
     private void handleSearchKey(KeyEvent event) {
         switch (event.code()) {
             case ESCAPE -> {
+                // cancel an uncommitted search and restore the previous selection
                 query.setLength(0);
                 applyFilter(false);
                 searching = false;
             }
-            case ENTER, TAB -> searching = false;
+            case ENTER -> {
+                // commit the search term; Esc can reset it later
+                searching = false;
+                searchCommitted = true;
+            }
             case BACKSPACE -> {
                 if (!query.isEmpty()) {
                     query.deleteCharAt(query.length() - 1);

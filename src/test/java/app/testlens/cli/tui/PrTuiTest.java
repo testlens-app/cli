@@ -163,7 +163,7 @@ class PrTuiTest {
     }
 
     @Test
-    void navigates_between_table_and_details_with_enter_escape_and_tab() {
+    void navigates_between_table_and_details_with_tab() {
         var focusManager = new FocusManager();
         var eventRouter = new EventRouter(focusManager, new ElementRegistry());
         var context = new DefaultRenderContext(focusManager, eventRouter);
@@ -179,18 +179,20 @@ class PrTuiTest {
         assertThat(focusManager.focusOrder()).containsExactly("tests", "details");
         assertThat(focusManager.focusedId()).isEqualTo("tests");
 
-        assertThat(eventRouter.route(KeyEvent.ofKey(KeyCode.ENTER))).isEqualTo(EventResult.HANDLED);
+        // Enter and Esc no longer switch panes
+        assertThat(eventRouter.route(KeyEvent.ofKey(KeyCode.ENTER))).isEqualTo(EventResult.UNHANDLED);
+        eventRouter.route(KeyEvent.ofKey(KeyCode.ESCAPE));
+        // the framework clears focus on Esc, but the pane is not switched
+        assertThat(focusManager.focusedId()).isNotEqualTo("details");
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        assertThat(eventRouter.route(KeyEvent.ofKey(KeyCode.TAB))).isEqualTo(EventResult.HANDLED);
         assertThat(focusManager.focusedId()).isEqualTo("details");
         var detailsFocusedFrame = renderFrame(view, 120, context, focusManager, eventRouter);
         assertThat(detailsFocusedFrame.get(0, 6).style().fg()).contains(Color.CYAN);
-        assertThat(eventRouter.route(KeyEvent.ofKey(KeyCode.ESCAPE))).isEqualTo(EventResult.HANDLED);
-        assertThat(focusManager.focusedId()).isEqualTo("tests");
         renderFrame(view, 120, context, focusManager, eventRouter);
-        assertThat(eventRouter.route(KeyEvent.ofKey(KeyCode.TAB))).isEqualTo(EventResult.HANDLED);
-        assertThat(focusManager.focusedId()).isEqualTo("details");
-        renderBuffer(view, 120, context);
         assertThat(eventRouter.route(KeyEvent.ofKey(KeyCode.TAB, KeyModifiers.SHIFT))).isEqualTo(EventResult.HANDLED);
         assertThat(focusManager.focusedId()).isEqualTo("tests");
+        renderBuffer(view, 120, context);
     }
 
     @Test
@@ -364,6 +366,41 @@ class PrTuiTest {
         assertThat(controller.isSearching()).isFalse();
         assertThat(table.tests()).hasSize(3);
         assertThat(table.tableState().selected()).isZero();
+    }
+
+    @Test
+    void escape_resets_a_committed_search() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("bar()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('/'));
+        table.handleKey(KeyEvent.ofChar('x'));
+        // Enter commits the search term
+        table.handleKey(new KeyEvent(KeyCode.ENTER, KeyModifiers.NONE, 0));
+        assertThat(table.isSearching()).isFalse();
+        assertThat(table.isSearchCommitted()).isTrue();
+        assertThat(table.tests()).isEmpty();
+
+        // Esc resets a committed search back to the full list
+        table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
+        assertThat(table.isSearchCommitted()).isFalse();
+        assertThat(table.searchQuery()).isEmpty();
+        assertThat(table.tests()).hasSize(2);
+
+        // without a committed search, Esc keeps the list unchanged
+        table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
+        assertThat(table.tests()).hasSize(2);
+        assertThat(table.isSearchCommitted()).isFalse();
     }
 
     @Test

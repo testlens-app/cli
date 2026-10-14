@@ -29,8 +29,12 @@ final class PrTuiView {
     }
 
     Element render() {
+        var tests = controller.testTableController();
         var query = activeSearchQuery();
-        var content = column(header.render(), testTable.render(), details.render(), footer.render(query));
+        var searchState = tests.isSearching()
+            ? PrFooterView.SearchState.SEARCHING
+            : tests.isSearchCommitted() ? PrFooterView.SearchState.COMMITTED : PrFooterView.SearchState.NONE;
+        var content = column(header.render(), testTable.render(), details.render(), footer.render(query, searchState));
         if (controller.hasTests()) {
             return content;
         }
@@ -47,6 +51,6 @@ final class PrTuiView {
 
     private @Nullable String activeSearchQuery() {
         var tests = controller.testTableController();
-        return tests.isSearching() ? tests.searchQuery() : null;
+        return tests.isSearching() || tests.isSearchCommitted() ? tests.searchQuery() : null;
     }
 }
