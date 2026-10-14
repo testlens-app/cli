@@ -263,6 +263,90 @@ class PrTuiTest {
         assertThat(render(view)).contains("No failing tests detected on pull request #3");
     }
 
+    @Test
+    void vim_keys_navigate_the_tests_table() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(executedTest("foo()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("bar()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL)))
+                .addTestsItem(executedTest("baz()", execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL))),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        renderBuffer(view, 120);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        var table = controller.testTableController();
+
+        table.handleKey(KeyEvent.ofChar('j'));
+        assertThat(table.tableState().selected()).isEqualTo(1);
+        table.handleKey(KeyEvent.ofChar('j'));
+        table.handleKey(KeyEvent.ofChar('j'));
+        assertThat(table.tableState().selected()).isEqualTo(2);
+        table.handleKey(KeyEvent.ofChar('k'));
+        table.handleKey(KeyEvent.ofChar('k'));
+        assertThat(table.tableState().selected()).isZero();
+    }
+
+    @Test
+    void vim_keys_scroll_and_switch_executions_in_the_details_pane() {
+        var focusManager = new FocusManager();
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(
+                    executedTest(
+                        "foo()",
+                        execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL),
+                        execution(OutcomeEnum.FAILED).htmlUrl(JOB_URL).stackTrace("""
+                                                                                  line one
+                                                                                  line two
+                                                                                  line three
+                                                                                  line four
+                                                                                  line five
+                                                                                  line six
+                                                                                  line seven
+                                                                                  line eight
+                                                                                  line nine
+                                                                                  line ten
+                                                                                  line eleven
+                                                                                  line twelve
+                                                                                  line thirteen
+                                                                                  line fourteen
+                                                                                  line fifteen
+                                                                                  line sixteen
+                                                                                  line seventeen
+                                                                                  line eighteen
+                                                                                  line nineteen
+                                                                                  line twenty
+                                                                                  line twenty-one""")
+                    )
+                ),
+            focusManager
+        );
+        var view = new PrTuiView(controller);
+        var details = controller.detailsController();
+        focusManager.setFocus(PrDetailsController.VIEW_ID);
+
+        renderBuffer(view, 120);
+        var state = view.detailsState();
+
+        // h/l switch executions even without focus
+        assertThat(details.tabsState().selected()).isEqualTo(1);
+        focusManager.setFocus(PrTestsTableController.VIEW_ID);
+        details.handleKey(KeyEvent.ofChar('h'));
+        assertThat(details.tabsState().selected()).isZero();
+        details.handleKey(KeyEvent.ofChar('l'));
+        assertThat(details.tabsState().selected()).isEqualTo(1);
+        focusManager.setFocus(PrDetailsController.VIEW_ID);
+
+        details.handleKey(KeyEvent.ofChar('j'));
+        assertThat(state.scrollRow()).isEqualTo(1);
+        details.handleKey(KeyEvent.ofChar('k'));
+        assertThat(state.scrollRow()).isZero();
+    }
+
     private static Execution execution(OutcomeEnum outcome) {
         return new Execution().outcome(outcome).startTime(START_TIME).durationMillis(1500L);
     }

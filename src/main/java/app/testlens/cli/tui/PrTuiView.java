@@ -7,6 +7,7 @@ import static dev.tamboui.toolkit.Toolkit.dialog;
 import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.text;
 
+import dev.tamboui.style.RichTextState;
 import dev.tamboui.toolkit.element.Element;
 
 final class PrTuiView {
@@ -24,6 +25,10 @@ final class PrTuiView {
         this.testTable = new PrTestsTableView(controller.testTableController());
         this.details = new PrDetailsView(controller.detailsController());
         this.footer = new PrFooterView();
+    }
+
+    RichTextState detailsState() {
+        return details.detailsState();
     }
 
     Element render() {
