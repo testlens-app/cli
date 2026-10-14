@@ -10,6 +10,7 @@ import static java.util.stream.Collectors.toSet;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.client.model.Execution.OutcomeEnum;
+import app.testlens.cli.util.FuzzySearch;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
 import dev.tamboui.style.Color;
@@ -17,6 +18,7 @@ import dev.tamboui.style.Style;
 import dev.tamboui.terminal.Frame;
 import dev.tamboui.text.CharWidth;
 import dev.tamboui.text.CharWidth.TruncatePosition;
+import dev.tamboui.text.Line;
 import dev.tamboui.text.Span;
 import dev.tamboui.toolkit.element.Element;
 import dev.tamboui.toolkit.element.RenderContext;
@@ -26,6 +28,7 @@ import dev.tamboui.widgets.scrollbar.Scrollbar;
 import dev.tamboui.widgets.scrollbar.ScrollbarState;
 import dev.tamboui.widgets.table.Cell;
 import dev.tamboui.widgets.table.Row;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -43,13 +46,16 @@ final class PrTestsTableView {
     private static final int COLUMN_SPACING = 3;
     private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 3 * COLUMN_SPACING;
     private static final int TABLE_CHROME_HEIGHT = 3;
+    private static final Style MATCH_HIGHLIGHT_STYLE = Style.EMPTY.bold().underlined();
 
     private final PrTestsTableController controller;
     private final TableElement table;
     private int tableWidth = -1;
+    private List<ExecutedTest> lastTests;
 
     PrTestsTableView(PrTestsTableController controller) {
         this.controller = controller;
+        this.lastTests = controller.tests();
         table = table()
             .id(PrTestsTableController.VIEW_ID)
             .title("Tests")
@@ -105,11 +111,12 @@ final class PrTestsTableView {
     }
 
     private void fitColumns(int width) {
-        if (width == tableWidth) {
+        var tests = controller.tests();
+        if (width == tableWidth && tests == lastTests) {
             return;
         }
         tableWidth = width;
-        var tests = controller.tests();
+        lastTests = tests;
         var outcomeWidth = columnWidth(OUTCOME, test -> AggregatedOutcome.from(test.getExecutions()).label());
         var available = width - TABLE_DECORATION_WIDTH - outcomeWidth;
         var jobWidth = columnWidth(JOB, ExecutedTest::getJob);
@@ -123,7 +130,11 @@ final class PrTestsTableView {
 
         var finalJobWidth = jobWidth;
         var finalWorkUnitWidth = workUnitWidth;
-        table.rows(tests.stream().map(test -> testRow(test, finalJobWidth, finalWorkUnitWidth, testWidth)).toList())
+        var query = controller.searchQuery();
+        table
+            .rows(
+                tests.stream().map(test -> testRow(test, finalJobWidth, finalWorkUnitWidth, testWidth, query)).toList()
+            )
             .widths(
                 Constraint.length(outcomeWidth),
                 Constraint.length(jobWidth),
@@ -138,14 +149,35 @@ final class PrTestsTableView {
         return Math.clamp(CharWidth.of(header), contentWidth, MAX_COLUMN_WIDTH);
     }
 
-    private static Row testRow(ExecutedTest test, int jobWidth, int workUnitWidth, int testWidth) {
+    private static Row testRow(ExecutedTest test, int jobWidth, int workUnitWidth, int testWidth, String query) {
         var aggregatedOutcome = AggregatedOutcome.from(test.getExecutions());
         return Row.from(
             Cell.from(Span.styled(aggregatedOutcome.label(), Style.EMPTY.fg(aggregatedOutcome.color()))),
             Cell.from(truncate(test.getJob(), jobWidth, TruncatePosition.MIDDLE)),
             Cell.from(truncate(test.getWorkUnit(), workUnitWidth, TruncatePosition.MIDDLE)),
-            Cell.from(abbreviatedTestName(test.getDisplayNames(), testWidth))
+            highlighted(abbreviatedTestName(test.getDisplayNames(), testWidth), query)
         );
+    }
+
+    // highlights the characters matched by the current search term, so it is apparent why a test is listed
+    private static Cell highlighted(String name, String query) {
+        var positions = query.isEmpty() ? null : FuzzySearch.matchPositions(query, name);
+        if (positions == null) {
+            return Cell.from(name);
+        }
+        var spans = new ArrayList<Span>();
+        int start = 0;
+        for (var position : positions) {
+            if (position > start) {
+                spans.add(Span.raw(name.substring(start, position)));
+            }
+            spans.add(Span.styled(name.substring(position, position + 1), MATCH_HIGHLIGHT_STYLE));
+            start = position + 1;
+        }
+        if (start < name.length()) {
+            spans.add(Span.raw(name.substring(start)));
+        }
+        return Cell.from(Line.from(spans));
     }
 
     private record AggregatedOutcome(OutcomeEnum max, boolean flaky) {

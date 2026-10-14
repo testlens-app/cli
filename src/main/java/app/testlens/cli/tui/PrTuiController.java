@@ -5,6 +5,7 @@ import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
+import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -47,6 +48,10 @@ final class PrTuiController {
         return !testsResponse.getTests().isEmpty();
     }
 
+    boolean isSearching() {
+        return testTableController.isSearching();
+    }
+
     PrTestsTableController testTableController() {
         return testTableController;
     }
@@ -68,9 +73,9 @@ final class PrTuiController {
             return EventResult.UNHANDLED;
         }
         String target = null;
-        if (event.isConfirm()) {
+        if (event.isKey(KeyCode.TAB) && !event.hasShift()) {
             target = nextViewId(index);
-        } else if (event.isCancel()) {
+        } else if (event.isKey(KeyCode.TAB) && event.hasShift()) {
             target = previousViewId(index);
         }
         if (target == null) {

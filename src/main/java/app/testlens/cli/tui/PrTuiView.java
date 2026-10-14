@@ -9,6 +9,7 @@ import static dev.tamboui.toolkit.Toolkit.text;
 
 import dev.tamboui.style.RichTextState;
 import dev.tamboui.toolkit.element.Element;
+import org.jspecify.annotations.Nullable;
 
 final class PrTuiView {
 
@@ -27,12 +28,13 @@ final class PrTuiView {
         this.footer = new PrFooterView();
     }
 
-    RichTextState detailsState() {
-        return details.detailsState();
-    }
-
     Element render() {
-        var content = column(header.render(), testTable.render(), details.render(), footer.render());
+        var tests = controller.testTableController();
+        var query = activeSearchQuery();
+        var searchState = tests.isSearching()
+            ? PrFooterView.SearchState.SEARCHING
+            : tests.isSearchCommitted() ? PrFooterView.SearchState.COMMITTED : PrFooterView.SearchState.NONE;
+        var content = column(header.render(), testTable.render(), details.render(), footer.render(query, searchState));
         if (controller.hasTests()) {
             return content;
         }
@@ -41,5 +43,14 @@ final class PrTuiView {
             content,
             dialog(text(message)).rounded().borderColor(YELLOW).width(message.length() + 4)
         );
+    }
+
+    RichTextState detailsState() {
+        return details.detailsState();
+    }
+
+    private @Nullable String activeSearchQuery() {
+        var tests = controller.testTableController();
+        return tests.isSearching() || tests.isSearchCommitted() ? tests.searchQuery() : null;
     }
 }
