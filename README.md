@@ -1,4 +1,4 @@
-<img width="1280" height="821" alt="1267842" src="https://github.com/user-attachments/assets/42d7f711-14f7-49b6-89e4-2cd98f92046c" /># TestLens CLI
+# TestLens CLI
 
 [![CI](https://github.com/testlens-app/cli/actions/workflows/main.yml/badge.svg)](https://github.com/testlens-app/cli/actions/workflows/main.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
