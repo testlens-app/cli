@@ -5,7 +5,7 @@
 
 TestLens CLI — see https://testlens.app.
 
-<a href="https://asciinema.org/a/1267842" target="_blank"><img width="1459" height="986" alt="testlens-cli" src="https://github.com/user-attachments/assets/2e9c6bc3-02d0-4483-ab6b-909fd1099001" /></a>
+<a href="https://asciinema.org/a/1267842" target="_blank"><img width="1459" height="985" alt="testlens-cli" src="https://github.com/user-attachments/assets/8f374de4-d06c-4e0f-b785-a22a5ee10c33" /></a>
 
 Find the full documentation including installation instructions at https://testlens.app/docs/features/cli.
 
