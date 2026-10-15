@@ -347,29 +347,29 @@ class PrTuiTest {
         table.handleKey(KeyEvent.ofChar('/'));
         assertThat(table.isSearching()).isTrue();
         table.handleKey(KeyEvent.ofChar('b'));
-        assertThat(table.tests()).hasSize(2);
+        assertThat(table.model().tests()).hasSize(2);
         // the best match is selected while searching
         assertThat(table.tableState().selected()).isZero();
         assertThat(render(view)).doesNotContain("FooTests > foo()");
         table.handleKey(KeyEvent.ofChar('z'));
-        assertThat(table.tests()).hasSize(1);
+        assertThat(table.model().tests()).hasSize(1);
         assertThat(table.tableState().selected()).isZero();
 
         // Enter keeps the filter...
         table.handleKey(new KeyEvent(KeyCode.ENTER, KeyModifiers.NONE, 0));
         assertThat(table.isSearching()).isFalse();
-        assertThat(table.tests()).hasSize(1);
+        assertThat(table.model().tests()).hasSize(1);
         // ...and a new search resets it back to the full list
         table.handleKey(KeyEvent.ofChar('/'));
         assertThat(table.isSearching()).isTrue();
-        assertThat(table.tests()).hasSize(3);
+        assertThat(table.model().tests()).hasSize(3);
         assertThat(table.tableState().selected()).isZero();
 
         // cancelling keeps the list reset and stays on the selected test
         table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
         assertThat(table.isSearching()).isFalse();
         assertThat(controller.isSearching()).isFalse();
-        assertThat(table.tests()).hasSize(3);
+        assertThat(table.model().tests()).hasSize(3);
         assertThat(table.tableState().selected()).isZero();
     }
 
@@ -394,17 +394,17 @@ class PrTuiTest {
         table.handleKey(new KeyEvent(KeyCode.ENTER, KeyModifiers.NONE, 0));
         assertThat(table.isSearching()).isFalse();
         assertThat(table.isSearchCommitted()).isTrue();
-        assertThat(table.tests()).isEmpty();
+        assertThat(table.model().tests()).isEmpty();
 
         // Esc resets a committed search back to the full list
         table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
         assertThat(table.isSearchCommitted()).isFalse();
         assertThat(table.searchQuery()).isEmpty();
-        assertThat(table.tests()).hasSize(2);
+        assertThat(table.model().tests()).hasSize(2);
 
         // without a committed search, Esc keeps the list unchanged
         table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
-        assertThat(table.tests()).hasSize(2);
+        assertThat(table.model().tests()).hasSize(2);
         assertThat(table.isSearchCommitted()).isFalse();
     }
 
@@ -429,7 +429,7 @@ class PrTuiTest {
             table.handleKey(KeyEvent.ofChar(c));
         }
         // in "alphatest()" the final "t" extends the consecutive match, in "alphabet()" it is a gap
-        assertThat(table.tests().stream().map(test -> test.getDisplayNames().get(2)).toList())
+        assertThat(table.model().tests().stream().map(test -> test.getDisplayNames().get(2)).toList())
             .containsExactly("alphatest()", "alphabet()");
         assertThat(table.tableState().selected()).isZero();
     }
@@ -514,7 +514,7 @@ class PrTuiTest {
         table.handleKey(KeyEvent.ofChar('/'));
         table.handleKey(KeyEvent.ofChar('x'));
         table.handleKey(KeyEvent.ofChar('y'));
-        assertThat(table.tests()).isEmpty();
+        assertThat(table.model().tests()).isEmpty();
         assertThat(table.isSearching()).isTrue();
 
         // typing continues into the search, navigation keys cannot move focus away
@@ -530,7 +530,7 @@ class PrTuiTest {
         table.handleKey(KeyEvent.ofChar('/'));
         table.handleKey(new KeyEvent(KeyCode.ESCAPE, KeyModifiers.NONE, 0));
         assertThat(table.isSearching()).isFalse();
-        assertThat(table.tests()).hasSize(1);
+        assertThat(table.model().tests()).hasSize(1);
         assertThat(table.tableState().selected()).isZero();
     }
 

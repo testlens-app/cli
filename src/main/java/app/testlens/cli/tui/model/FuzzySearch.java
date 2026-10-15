@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.util;
+package app.testlens.cli.tui.model;
 
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;

@@ -3,6 +3,7 @@ package app.testlens.cli.tui.controller;
 
 import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
+import app.testlens.cli.tui.model.PrTuiModel;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyCode;
@@ -14,20 +15,24 @@ public final class PrTuiController {
 
     private static final List<String> VIEW_IDS = List.of(PrTestsTableController.VIEW_ID, PrDetailsController.VIEW_ID);
 
-    private final PullRequestResponse prResponse;
-    private final PullRequestTestsResponse testsResponse;
+    private final PrTuiModel model;
     private final FocusManager focusManager;
     private final PrDetailsController detailsController;
     private final PrTestsTableController testTableController;
 
-    public PrTuiController(PullRequestResponse prResponse, PullRequestTestsResponse testsResponse, FocusManager focusManager) {
-        this.prResponse = prResponse;
-        this.testsResponse = testsResponse;
+    public PrTuiController(
+        PullRequestResponse prResponse,
+        PullRequestTestsResponse testsResponse,
+        FocusManager focusManager
+    ) {
+        this.model = new PrTuiModel(prResponse, testsResponse);
         this.focusManager = focusManager;
         this.detailsController = new PrDetailsController(
             keyEvent -> navigate(keyEvent, PrDetailsController.VIEW_ID),
-            focusManager
+            focusManager,
+            model
         );
+        // created after the details controller, so the initial test selection reaches the details pane
         this.testTableController = new PrTestsTableController(
             keyEvent -> navigate(keyEvent, PrTestsTableController.VIEW_ID),
             focusManager,
@@ -36,16 +41,12 @@ public final class PrTuiController {
         );
     }
 
-    public PullRequestResponse prResponse() {
-        return prResponse;
-    }
-
-    public PullRequestTestsResponse testsResponse() {
-        return testsResponse;
+    public PrTuiModel model() {
+        return model;
     }
 
     public boolean hasTests() {
-        return !testsResponse.getTests().isEmpty();
+        return model.hasTests();
     }
 
     public boolean isSearching() {

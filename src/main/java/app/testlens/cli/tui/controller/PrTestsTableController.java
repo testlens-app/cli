@@ -3,35 +3,28 @@ package app.testlens.cli.tui.controller;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
-import app.testlens.cli.util.FuzzySearch;
+import app.testlens.cli.tui.model.TestListModel;
+import app.testlens.cli.tui.view.PrTestsTableView;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
-import app.testlens.cli.tui.view.PrTestsTableView;
 import dev.tamboui.widgets.table.TableState;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.IntStream;
-import org.jspecify.annotations.Nullable;
 
+/**
+ * Input handling for the tests table. Owns the table widget state and keeps it in sync with the {@link TestListModel};
+ * filtering, searching and the selection itself live in the model.
+ */
 public final class PrTestsTableController {
 
     public static final String VIEW_ID = "tests";
 
     private final Function<KeyEvent, EventResult> keyHandler;
     private final FocusManager focusManager;
-    private final List<ExecutedTest> allTests;
-    private List<ExecutedTest> visibleTests;
-    private final Consumer<ExecutedTest> onSelectedTest;
+    private final TestListModel model;
     private final TableState state = new TableState();
-    private boolean searching;
-    private boolean searchCommitted;
-    private final StringBuilder query = new StringBuilder();
-    private @Nullable ExecutedTest selected;
 
     public PrTestsTableController(
         Function<KeyEvent, EventResult> keyHandler,
@@ -41,17 +34,14 @@ public final class PrTestsTableController {
     ) {
         this.keyHandler = keyHandler;
         this.focusManager = focusManager;
-        this.allTests = tests.getTests();
-        this.visibleTests = allTests;
-        this.onSelectedTest = onSelectedTest;
-        if (!allTests.isEmpty()) {
-            selectTest(0);
+        this.model = new TestListModel(tests.getTests(), onSelectedTest);
+        if (model.selectedIndex() >= 0) {
+            state.select(model.selectedIndex());
         }
     }
 
-    // the (continuously filtered) list currently shown in the table
-    public List<ExecutedTest> tests() {
-        return visibleTests;
+    public TestListModel model() {
+        return model;
     }
 
     public TableState tableState() {
@@ -63,51 +53,46 @@ public final class PrTestsTableController {
     }
 
     public boolean isSearching() {
-        return searching;
+        return model.isSearching();
     }
 
     public boolean isSearchCommitted() {
-        return searchCommitted;
+        return model.isSearchCommitted();
     }
 
     public String searchQuery() {
-        return query.toString();
+        return model.searchQuery();
     }
 
     public void selectTest(int index) {
-        if (!Objects.equals(index, state.selected())) {
-            selected = visibleTests.get(index);
+        if (model.selectTest(index)) {
             state.select(index);
-            onSelectedTest.accept(selected);
         }
     }
 
     public EventResult handleKey(KeyEvent event) {
         // search keys are handled first, so an empty filtered list cannot hijack navigation keys
-        if (searching) {
+        if (model.isSearching()) {
             // pane switching stays available while searching
             if (event.isKey(KeyCode.TAB)) {
                 return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
             }
             handleSearchKey(event);
+            syncSelection();
             return EventResult.HANDLED;
         }
         if (isFocused() && event.isChar('/')) {
-            searching = true;
-            searchCommitted = false;
-            query.setLength(0);
-            // starting a new search resets a committed filter back to the full list
-            applyFilter(true);
+            model.startSearch();
+            syncSelection();
             return EventResult.HANDLED;
         }
-        if (searchCommitted && event.isKey(KeyCode.ESCAPE)) {
+        if (model.isSearchCommitted() && event.isKey(KeyCode.ESCAPE)) {
             // resetting a committed search restores the full, unfiltered list
-            searchCommitted = false;
-            query.setLength(0);
-            applyFilter(false);
+            model.resetSearch();
+            syncSelection();
             return EventResult.HANDLED;
         }
-        if (visibleTests.isEmpty()) {
+        if (model.tests().isEmpty()) {
             return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
         }
         if (keyHandler.apply(event).isHandled()) {
@@ -116,7 +101,7 @@ public final class PrTestsTableController {
         if (!isFocused()) {
             return EventResult.UNHANDLED;
         }
-        var selected = (int) state.selected();
+        var selected = model.selectedIndex();
         int target;
         if (event.isUp() || event.isChar('k')) {
             target = selected - 1;
@@ -129,37 +114,22 @@ public final class PrTestsTableController {
         } else if (event.isHome()) {
             target = 0;
         } else if (event.isEnd()) {
-            target = visibleTests.size() - 1;
+            target = model.tests().size() - 1;
         } else {
             return EventResult.UNHANDLED;
         }
-        selectTest(Math.clamp(target, 0, visibleTests.size() - 1));
+        selectTest(Math.clamp(target, 0, model.tests().size() - 1));
         return EventResult.HANDLED;
     }
 
     private void handleSearchKey(KeyEvent event) {
         switch (event.code()) {
-            case ESCAPE -> {
-                // cancel an uncommitted search and restore the previous selection
-                query.setLength(0);
-                applyFilter(false);
-                searching = false;
-            }
-            case ENTER -> {
-                // commit the search term; Esc can reset it later
-                searching = false;
-                searchCommitted = true;
-            }
-            case BACKSPACE -> {
-                if (!query.isEmpty()) {
-                    query.deleteCharAt(query.length() - 1);
-                    applyFilter(true);
-                }
-            }
+            case ESCAPE -> model.cancelSearch();
+            case ENTER -> model.commitSearch();
+            case BACKSPACE -> model.backspace();
             case CHAR -> {
                 if (!event.hasCtrl()) {
-                    query.appendCodePoint(event.codePoint());
-                    applyFilter(true);
+                    model.appendChar(event.codePoint());
                 }
             }
             default -> {
@@ -168,53 +138,8 @@ public final class PrTestsTableController {
         }
     }
 
-    // while typing, the best match is selected (selectTop); on cancel, the previous selection is restored
-    private void applyFilter(boolean selectTop) {
-        var q = query.toString();
-        visibleTests = q.isEmpty()
-            ? allTests
-            // best matches first; ties keep the original table order
-            : IntStream.range(0, allTests.size())
-                .mapToObj(
-                    index -> new Match(allTests.get(index), FuzzySearch.score(q, haystack(allTests.get(index))), index)
-                )
-                .filter(match -> match.score >= 0)
-                .sorted(
-                    Comparator.comparingInt((Match match) -> match.score)
-                        .reversed()
-                        .thenComparingInt(match -> match.index)
-                )
-                .map(match -> match.test)
-                .toList();
-        if (selectTop) {
-            if (!visibleTests.isEmpty()) {
-                forceSelect(0);
-            } else {
-                selected = null;
-                state.select(0);
-            }
-            return;
-        }
-        var kept = visibleTests.indexOf(selected);
-        if (kept >= 0) {
-            selectTest(kept);
-        } else if (!visibleTests.isEmpty()) {
-            forceSelect(0);
-        } else {
-            selected = null;
-            state.select(0);
-        }
-    }
-
-    private record Match(ExecutedTest test, int score, int index) {}
-
-    private void forceSelect(int index) {
-        selected = visibleTests.get(index);
-        state.select(index);
-        onSelectedTest.accept(selected);
-    }
-
-    private static String haystack(ExecutedTest test) {
-        return String.join(" ", test.getDisplayNames());
+    // the model is the source of truth for the selection; the table state follows it
+    private void syncSelection() {
+        state.select(model.selectedIndex());
     }
 }

@@ -4,38 +4,37 @@ package app.testlens.cli.tui.controller;
 import static java.util.Objects.requireNonNull;
 
 import app.testlens.cli.client.model.ExecutedTest;
-import app.testlens.cli.client.model.Execution;
+import app.testlens.cli.tui.model.PrTuiModel;
 import dev.tamboui.toolkit.elements.RichTextAreaElement;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyEvent;
 import dev.tamboui.widgets.tabs.TabsState;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * Input handling for the details pane. Owns the widget state (execution tabs, scrollable details area) and keeps it in
+ * sync with the details model; the domain state itself lives in {@link PrTuiModel}.
+ */
 public final class PrDetailsController {
 
     public static final String VIEW_ID = "details";
 
     private final Function<KeyEvent, EventResult> keyHandler;
     private final FocusManager focusManager;
+    private final PrTuiModel model;
     private final TabsState tabsState = new TabsState();
-    private @Nullable Consumer<Execution> onSelectedExecution;
     private @Nullable RichTextAreaElement detailsArea;
-    private @Nullable ExecutedTest selectedTest;
 
-    public PrDetailsController(Function<KeyEvent, EventResult> keyHandler, FocusManager focusManager) {
+    public PrDetailsController(
+        Function<KeyEvent, EventResult> keyHandler,
+        FocusManager focusManager,
+        PrTuiModel model
+    ) {
         this.keyHandler = keyHandler;
         this.focusManager = focusManager;
-    }
-
-    public void onSelectedExecution(Consumer<Execution> onSelectedExecution) {
-        if (this.onSelectedExecution != null) {
-            throw new IllegalStateException("onSelectedExecution was already set");
-        }
-        this.onSelectedExecution = onSelectedExecution;
-        updateDetailsArea();
+        this.model = model;
     }
 
     public void bindDetailsArea(RichTextAreaElement detailsArea) {
@@ -43,15 +42,6 @@ public final class PrDetailsController {
             throw new IllegalStateException("detailsArea was already set");
         }
         this.detailsArea = detailsArea;
-    }
-
-    @Nullable
-    public ExecutedTest selectedTest() {
-        return selectedTest;
-    }
-
-    public int selectedExecutionIndex() {
-        return requireNonNull(tabsState.selected());
     }
 
     public TabsState tabsState() {
@@ -62,39 +52,29 @@ public final class PrDetailsController {
         return focusManager.isFocused(VIEW_ID);
     }
 
-    public Execution selectedExecution() {
-        return requireNonNull(selectedTest).getExecutions().get(selectedExecutionIndex());
-    }
-
+    /** Follows the test selection of the tests table; the last execution is shown. */
     public void selectTest(ExecutedTest test) {
-        selectedTest = test;
-        tabsState.select(test.getExecutions().size() - 1);
-        updateDetailsArea();
+        model.selectTest(test);
+        tabsState.select(model.details().executionIndex());
     }
 
     public EventResult handleKey(KeyEvent event) {
-        if (selectedTest == null) {
+        var details = model.details();
+        if (details.test() == null) {
             return keyHandler.apply(event).isHandled() ? EventResult.HANDLED : EventResult.UNHANDLED;
         }
         if (keyHandler.apply(event).isHandled()) {
             return EventResult.HANDLED;
         }
         // handled regardless of focus, so executions can be switched while browsing tests
-        var executionCount = requireNonNull(selectedTest).getExecutions().size();
         if (event.isLeft() || event.isChar('h')) {
-            var previousExecution = selectedExecutionIndex();
-            tabsState.select(Math.max(0, previousExecution - 1));
-            if (selectedExecutionIndex() != previousExecution) {
-                updateDetailsArea();
-            }
+            model.selectExecution(details.executionIndex() - 1);
+            tabsState.select(model.details().executionIndex());
             return EventResult.HANDLED;
         }
         if (event.isRight() || event.isChar('l')) {
-            var previousExecution = selectedExecutionIndex();
-            tabsState.select(Math.min(executionCount - 1, previousExecution + 1));
-            if (selectedExecutionIndex() != previousExecution) {
-                updateDetailsArea();
-            }
+            model.selectExecution(details.executionIndex() + 1);
+            tabsState.select(model.details().executionIndex());
             return EventResult.HANDLED;
         }
         if (!isFocused()) {
@@ -109,11 +89,5 @@ public final class PrDetailsController {
             return EventResult.UNHANDLED;
         }
         return EventResult.HANDLED;
-    }
-
-    private void updateDetailsArea() {
-        if (onSelectedExecution != null && selectedTest != null) {
-            onSelectedExecution.accept(selectedExecution());
-        }
     }
 }
