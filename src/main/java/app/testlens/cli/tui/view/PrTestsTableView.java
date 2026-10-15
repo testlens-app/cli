@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.view;
 
-import static app.testlens.cli.tui.PrTuiUtils.abbreviatedTestName;
-import static app.testlens.cli.tui.PrTuiUtils.outcomeColor;
-import static app.testlens.cli.tui.PrTuiUtils.truncate;
+import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
+import static app.testlens.cli.tui.view.PrTuiUtils.outcomeColor;
+import static app.testlens.cli.tui.view.PrTuiUtils.truncate;
 import static dev.tamboui.toolkit.Toolkit.table;
-import static java.util.stream.Collectors.toSet;
 
 import app.testlens.cli.client.model.ExecutedTest;
-import app.testlens.cli.client.model.Execution;
-import app.testlens.cli.client.model.Execution.OutcomeEnum;
-import app.testlens.cli.util.FuzzySearch;
+import app.testlens.cli.tui.controller.PrTestsTableController;
+import app.testlens.cli.tui.model.AggregatedOutcome;
+import app.testlens.cli.tui.model.FuzzySearch;
+import app.testlens.cli.tui.model.TestListModel;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
 import dev.tamboui.style.Color;
@@ -29,13 +29,13 @@ import dev.tamboui.widgets.scrollbar.ScrollbarState;
 import dev.tamboui.widgets.table.Cell;
 import dev.tamboui.widgets.table.Row;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
-final class PrTestsTableView {
+public final class PrTestsTableView {
 
-    static final int MAX_VISIBLE_TESTS = 10;
+    public static final int MAX_VISIBLE_TESTS = 10;
     private static final String OUTCOME = "Outcome";
     private static final String JOB = "Job";
     private static final String WORK_UNIT_LABEL = "Project/Task";
@@ -49,13 +49,16 @@ final class PrTestsTableView {
     private static final Style MATCH_HIGHLIGHT_STYLE = Style.EMPTY.bold().underlined();
 
     private final PrTestsTableController controller;
+    private final TestListModel model;
     private final TableElement table;
     private int tableWidth = -1;
-    private List<ExecutedTest> lastTests;
+    private @Nullable TableContent lastContent;
 
-    PrTestsTableView(PrTestsTableController controller) {
+    private record TableContent(List<ExecutedTest> tests, String query) {}
+
+    public PrTestsTableView(PrTestsTableController controller) {
         this.controller = controller;
-        this.lastTests = controller.tests();
+        this.model = controller.model();
         table = table()
             .id(PrTestsTableController.VIEW_ID)
             .title("Tests")
@@ -69,9 +72,9 @@ final class PrTestsTableView {
             .onKeyEvent(controller::handleKey);
     }
 
-    Element render() {
+    public Element render() {
         table.borderColor(controller.isFocused() ? Color.CYAN : Color.DARK_GRAY);
-        var tests = controller.tests();
+        var tests = model.tests();
         // reserve space for a full table even when empty, so the popup has a natural backdrop
         var rowCount = tests.isEmpty() ? MAX_VISIBLE_TESTS : tests.size();
         return testTableWithScrollbar(Constraint.length(Math.min(rowCount, MAX_VISIBLE_TESTS) + TABLE_CHROME_HEIGHT));
@@ -83,7 +86,7 @@ final class PrTestsTableView {
             public void render(Frame frame, Rect area, RenderContext context) {
                 fitColumns(area.width());
                 context.renderChild(table, frame, area);
-                var tests = controller.tests();
+                var tests = model.tests();
                 var visibleRows = area.height() - TABLE_CHROME_HEIGHT;
                 if (tests.size() > visibleRows) {
                     var track = new Rect(area.right() - 1, area.top() + TABLE_CHROME_HEIGHT - 1, 1, visibleRows);
@@ -111,13 +114,14 @@ final class PrTestsTableView {
     }
 
     private void fitColumns(int width) {
-        var tests = controller.tests();
-        if (width == tableWidth && tests == lastTests) {
+        // memoized by value, so rows are only rebuilt when the model state actually changed
+        var content = new TableContent(model.tests(), model.searchQuery());
+        if (width == tableWidth && content.equals(lastContent)) {
             return;
         }
         tableWidth = width;
-        lastTests = tests;
-        var outcomeWidth = columnWidth(OUTCOME, test -> AggregatedOutcome.from(test.getExecutions()).label());
+        lastContent = content;
+        var outcomeWidth = columnWidth(OUTCOME, test -> outcomeLabel(AggregatedOutcome.from(test.getExecutions())));
         var available = width - TABLE_DECORATION_WIDTH - outcomeWidth;
         var jobWidth = columnWidth(JOB, ExecutedTest::getJob);
         var workUnitWidth = columnWidth(WORK_UNIT_LABEL, ExecutedTest::getWorkUnit);
@@ -130,10 +134,13 @@ final class PrTestsTableView {
 
         var finalJobWidth = jobWidth;
         var finalWorkUnitWidth = workUnitWidth;
-        var query = controller.searchQuery();
+        var query = content.query();
         table
             .rows(
-                tests.stream().map(test -> testRow(test, finalJobWidth, finalWorkUnitWidth, testWidth, query)).toList()
+                content.tests()
+                    .stream()
+                    .map(test -> testRow(test, finalJobWidth, finalWorkUnitWidth, testWidth, query))
+                    .toList()
             )
             .widths(
                 Constraint.length(outcomeWidth),
@@ -144,19 +151,27 @@ final class PrTestsTableView {
     }
 
     private int columnWidth(String header, Function<ExecutedTest, String> value) {
-        var contentWidth =
-            controller.tests().stream().mapToInt(test -> CharWidth.of(value.apply(test))).max().orElse(0);
+        var contentWidth = model.tests().stream().mapToInt(test -> CharWidth.of(value.apply(test))).max().orElse(0);
         return Math.clamp(CharWidth.of(header), contentWidth, MAX_COLUMN_WIDTH);
     }
 
     private static Row testRow(ExecutedTest test, int jobWidth, int workUnitWidth, int testWidth, String query) {
-        var aggregatedOutcome = AggregatedOutcome.from(test.getExecutions());
+        var outcome = AggregatedOutcome.from(test.getExecutions());
         return Row.from(
-            Cell.from(Span.styled(aggregatedOutcome.label(), Style.EMPTY.fg(aggregatedOutcome.color()))),
+            Cell.from(Span.styled(outcomeLabel(outcome), Style.EMPTY.fg(colorFor(outcome)))),
             Cell.from(truncate(test.getJob(), jobWidth, TruncatePosition.MIDDLE)),
             Cell.from(truncate(test.getWorkUnit(), workUnitWidth, TruncatePosition.MIDDLE)),
             highlighted(abbreviatedTestName(test.getDisplayNames(), testWidth), query)
         );
+    }
+
+    // presentation of the aggregated outcome: the model only knows the domain state
+    private static Color colorFor(AggregatedOutcome outcome) {
+        return outcome.flaky() ? Color.YELLOW : outcomeColor(outcome.max());
+    }
+
+    private static String outcomeLabel(AggregatedOutcome outcome) {
+        return outcome.flaky() ? "FLAKY" : outcome.max().name();
     }
 
     // highlights the characters matched by the current search term, so it is apparent why a test is listed
@@ -178,23 +193,5 @@ final class PrTestsTableView {
             spans.add(Span.raw(name.substring(start)));
         }
         return Cell.from(Line.from(spans));
-    }
-
-    private record AggregatedOutcome(OutcomeEnum max, boolean flaky) {
-
-        static AggregatedOutcome from(List<Execution> executions) {
-            var outcomes = executions.stream().map(Execution::getOutcome).collect(toSet());
-            var max = Collections.max(outcomes);
-            var flaky = max == OutcomeEnum.FAILED && outcomes.contains(OutcomeEnum.SUCCESSFUL);
-            return new AggregatedOutcome(max, flaky);
-        }
-
-        Color color() {
-            return flaky ? Color.YELLOW : outcomeColor(max);
-        }
-
-        String label() {
-            return flaky ? "FLAKY" : max.name();
-        }
     }
 }

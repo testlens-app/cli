@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.view;
 
 import app.testlens.cli.client.model.Execution;
 import dev.tamboui.style.Color;
@@ -15,7 +15,7 @@ public class PrTuiUtils {
      * Keeps the outermost segment (e.g. the class) and abbreviates the remaining ones from the start so the innermost
      * segment (e.g. the method) stays visible.
      */
-    static String abbreviatedTestName(List<String> displayNames, int width) {
+    public static String abbreviatedTestName(List<String> displayNames, int width) {
         // skip the first display name which denotes the test engine
         var names = displayNames.subList(Math.min(1, displayNames.size()), displayNames.size());
         if (names.size() <= 1) {
@@ -31,11 +31,11 @@ public class PrTuiUtils {
         return first + truncate(rest, restWidth, CharWidth.TruncatePosition.START);
     }
 
-    static String truncate(String value, int width, CharWidth.TruncatePosition position) {
+    public static String truncate(String value, int width, CharWidth.TruncatePosition position) {
         return CharWidth.truncateWithEllipsis(value, width, ELLIPSIS, position);
     }
 
-    static Color outcomeColor(Execution.OutcomeEnum outcome) {
+    public static Color outcomeColor(Execution.OutcomeEnum outcome) {
         return switch (outcome) {
             case SUCCESSFUL, REUSED -> Color.GREEN;
             case FAILED -> Color.RED;

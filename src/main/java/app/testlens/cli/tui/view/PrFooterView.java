@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.view;
 
 import static dev.tamboui.toolkit.Toolkit.text;
 
 import dev.tamboui.toolkit.element.Element;
 import org.jspecify.annotations.Nullable;
 
-final class PrFooterView {
+public final class PrFooterView {
 
     enum SearchState {
         NONE,
@@ -14,7 +14,7 @@ final class PrFooterView {
         COMMITTED
     }
 
-    Element render(@Nullable String searchQuery, SearchState searchState) {
+    public Element render(@Nullable String searchQuery, SearchState searchState) {
         if (searchState == SearchState.SEARCHING) {
             // issue #29: while searching, the footer shows the typed search term
             return text("/" + searchQuery + " ▌  (Enter keep, Esc cancel, Tab switch pane)").reversed().length(1);

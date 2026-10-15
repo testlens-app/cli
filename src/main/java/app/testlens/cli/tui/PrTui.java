@@ -3,6 +3,8 @@ package app.testlens.cli.tui;
 
 import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
+import app.testlens.cli.tui.controller.PrTuiController;
+import app.testlens.cli.tui.view.PrTuiView;
 import dev.tamboui.toolkit.app.ToolkitRunner;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.tui.event.KeyEvent;

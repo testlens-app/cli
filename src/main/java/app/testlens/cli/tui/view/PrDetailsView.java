@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-package app.testlens.cli.tui;
+package app.testlens.cli.tui.view;
 
-import static app.testlens.cli.tui.PrTuiUtils.abbreviatedTestName;
-import static app.testlens.cli.tui.PrTuiUtils.outcomeColor;
+import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
+import static app.testlens.cli.tui.view.PrTuiUtils.outcomeColor;
 import static dev.tamboui.toolkit.Toolkit.panel;
 import static dev.tamboui.toolkit.Toolkit.richText;
 import static dev.tamboui.toolkit.Toolkit.richTextArea;
@@ -10,6 +10,9 @@ import static dev.tamboui.toolkit.Toolkit.richTextArea;
 import app.testlens.cli.PrCommand;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
+import app.testlens.cli.tui.controller.PrDetailsController;
+import app.testlens.cli.tui.model.DetailsModel;
+import app.testlens.cli.tui.model.PrTuiModel;
 import app.testlens.cli.util.TextDiff;
 import app.testlens.cli.util.TimeFormat;
 import dev.tamboui.layout.Constraint;
@@ -30,17 +33,21 @@ import dev.tamboui.widgets.tabs.Tabs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
+import org.jspecify.annotations.Nullable;
 
-final class PrDetailsView {
+public final class PrDetailsView {
 
     private static final int DETAILS_HEADER_HEIGHT = 5;
     private static final int DETAILS_LABEL_WIDTH = "Where: ".length();
 
     private final PrDetailsController controller;
+    private final PrTuiModel model;
     private final RichTextAreaElement detailsArea;
+    private @Nullable DetailsModel lastDetails;
 
-    PrDetailsView(PrDetailsController controller) {
+    public PrDetailsView(PrDetailsController controller, PrTuiModel model) {
         this.controller = controller;
+        this.model = model;
         this.detailsArea = richTextArea()
             .id(PrDetailsController.VIEW_ID)
             .wrapCharacter()
@@ -48,21 +55,20 @@ final class PrDetailsView {
             .focusable()
             .onKeyEvent(controller::handleKey);
         controller.bindDetailsArea(detailsArea);
-        controller.onSelectedExecution(
-            execution -> detailsArea.text(PrDetailsView.detailsContent(execution)).scrollToLine(0)
-        );
     }
 
-    RichTextState detailsState() {
+    public RichTextState detailsState() {
         return detailsArea.state();
     }
 
-    Element render() {
-        var test = controller.selectedTest();
+    public Element render() {
+        sync();
+        var details = model.details();
+        var test = details.test();
         if (test == null) {
             return panel(detailsArea.fill()).rounded().borderColor(Color.DARK_GRAY).fill();
         }
-        var executionIndex = controller.selectedExecutionIndex();
+        var executionIndex = details.executionIndex();
         var executions = test.getExecutions();
 
         var titles = new ArrayList<Line>();
@@ -108,6 +114,18 @@ final class PrDetailsView {
                 return panel.constraint();
             }
         };
+    }
+
+    // pushes model changes into the persistent details widget; memoized by value, so it is a no-op without changes
+    private void sync() {
+        var current = model.details();
+        if (current.equals(lastDetails)) {
+            return;
+        }
+        lastDetails = current;
+        if (current.test() != null) {
+            detailsArea.text(detailsContent(current.execution())).scrollToLine(0);
+        }
     }
 
     private Text detailsHeader(ExecutedTest test, Execution execution, int width) {
