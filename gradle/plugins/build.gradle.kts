@@ -17,7 +17,7 @@ dependencies {
     implementation("org.gradlex:reproducible-builds:1.1")
     implementation("org.openapitools:openapi-generator-gradle-plugin:7.26.0")
     implementation("com.atkinsondev.gradle:object-store-cache-plugin:3.1.0")
-    implementation("tools.jackson.core:jackson-databind:3.2.3")
+    implementation("tools.jackson.core:jackson-databind:3.2.4")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     constraints {
