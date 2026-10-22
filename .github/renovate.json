@@ -4,5 +4,12 @@
     "config:best-practices",
     ":automergeAll",
     ":semanticCommitTypeAll(chore)"
+  ],
+  "packageRules": [
+    {
+      "description": "GraalVM innovation releases have up to five version components, e.g. 25.4.4.1.1",
+      "matchPackageNames": ["graalvm/graalvm-ce-builds"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:\\.(?<build>\\d+))?(?:\\.(?<revision>\\d+))?$"
+    }
   ]
 }
