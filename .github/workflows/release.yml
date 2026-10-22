@@ -32,7 +32,7 @@ jobs:
       - uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1.6.7
         with:
           distribution: graalvm-community
-          version: 25i-latest
+          version: 25.2.4
       - uses: ./.github/actions/block-emudhra-certs
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
