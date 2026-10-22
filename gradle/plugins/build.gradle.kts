@@ -29,7 +29,7 @@ dependencies {
         }
         implementation("io.minio:minio") {
             version {
-                require("8.6.0")
+                require("9.0.3")
             }
             because("Workaround for CVE-2025-59952")
         }
