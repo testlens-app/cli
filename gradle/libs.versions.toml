@@ -16,7 +16,7 @@ jspecify = { module = "org.jspecify:jspecify", version = "1.0.1" }
 junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
-nullaway = { module = "com.uber.nullaway:nullaway", version = "0.14.2" }
+nullaway = { module = "com.uber.nullaway:nullaway", version = "0.14.3" }
 picocli = { module = "info.picocli:picocli", version = "4.7.7" }
 picocli-codegen = { module = "info.picocli:picocli-codegen", version = "4.7.7" }
 slf4j-bom = { module = "org.slf4j:slf4j-bom", version = "2.0.20" }
