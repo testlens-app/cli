@@ -47,7 +47,7 @@ dependencies {
         }
         implementation("com.github.jknack:handlebars") {
             version {
-                require("4.5.7")
+                require("4.5.8")
             }
             because("workaround for CVE-2026-55760")
         }
