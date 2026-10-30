@@ -2,6 +2,7 @@
 package app.testlens.cli.tui.view;
 
 import app.testlens.cli.client.model.Execution;
+import app.testlens.cli.client.model.TestExecutionResponse;
 import dev.tamboui.style.Color;
 import dev.tamboui.text.CharWidth;
 
@@ -36,6 +37,14 @@ public class PrTuiUtils {
     }
 
     public static Color outcomeColor(Execution.OutcomeEnum outcome) {
+        return switch (outcome) {
+            case SUCCESSFUL, REUSED -> Color.GREEN;
+            case FAILED -> Color.RED;
+            case SKIPPED, MUTED, ABORTED -> Color.YELLOW;
+        };
+    }
+
+    public static Color outcomeColor(TestExecutionResponse.OutcomeEnum outcome) {
         return switch (outcome) {
             case SUCCESSFUL, REUSED -> Color.GREEN;
             case FAILED -> Color.RED;

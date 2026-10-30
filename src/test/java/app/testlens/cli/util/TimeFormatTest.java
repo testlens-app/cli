@@ -3,7 +3,6 @@ package app.testlens.cli.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import app.testlens.cli.client.model.Execution;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -37,8 +36,6 @@ class TimeFormatTest {
                     """
     )
     void formats_start_end_and_duration(String start, Long durationMillis, String expected) {
-        var execution = new Execution().startTime(OffsetDateTime.parse(start)).durationMillis(durationMillis);
-
-        assertThat(TimeFormat.formatTime(execution)).isEqualTo(expected);
+        assertThat(TimeFormat.formatTime(OffsetDateTime.parse(start), durationMillis)).isEqualTo(expected);
     }
 }
