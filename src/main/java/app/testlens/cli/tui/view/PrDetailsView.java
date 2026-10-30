@@ -7,13 +7,11 @@ import static dev.tamboui.toolkit.Toolkit.panel;
 import static dev.tamboui.toolkit.Toolkit.richText;
 import static dev.tamboui.toolkit.Toolkit.richTextArea;
 
-import app.testlens.cli.PrCommand;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.tui.controller.PrDetailsController;
 import app.testlens.cli.tui.model.DetailsModel;
 import app.testlens.cli.tui.model.PrTuiModel;
-import app.testlens.cli.util.TextDiff;
 import app.testlens.cli.util.TimeFormat;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
@@ -124,7 +122,11 @@ public final class PrDetailsView {
         }
         lastDetails = current;
         if (current.test() != null) {
-            detailsArea.text(detailsContent(current.execution())).scrollToLine(0);
+            detailsArea
+                .text(
+                    ExecutionContent.of(current.execution().getComparisonFailure(), current.execution().getStackTrace())
+                )
+                .scrollToLine(0);
         }
     }
 
@@ -136,57 +138,15 @@ public final class PrDetailsView {
                     Span.raw(abbreviatedTestName(test.getDisplayNames(), width - DETAILS_LABEL_WIDTH))
                 ),
                 Line.from(Span.raw("Where: "), Span.raw(test.getJob() + " > " + test.getWorkUnit())),
-                Line.from(Span.raw("Time:  "), Span.raw(TimeFormat.formatTime(execution))),
+                Line.from(
+                    Span.raw("Time:  "),
+                    Span.raw(TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()))
+                ),
                 Line.from(
                     Span.raw("Job:   "),
                     Span.styled(execution.getHtmlUrl(), Style.EMPTY.underlined().hyperlink(execution.getHtmlUrl()))
                 )
             )
-        );
-    }
-
-    static Text detailsContent(Execution execution) {
-        var lines = new ArrayList<Line>();
-        TextDiff.diff(execution.getComparisonFailure()).ifPresent(diff -> {
-            lines.add(heading("Expected vs. actual"));
-            diff.forEach(line -> lines.add(diffLine(line)));
-            lines.add(Line.from(""));
-            lines.add(heading("Stack trace"));
-        });
-        lines.addAll(stackTrace(execution).lines());
-        return Text.from(lines);
-    }
-
-    private static Line heading(String title) {
-        return Line.styled(title, Style.EMPTY.bold());
-    }
-
-    private static Line diffLine(TextDiff.DiffLine line) {
-        var color = line.marker() == '-' ? Color.RED : line.marker() == '+' ? Color.GREEN : null;
-        var style = color == null ? Style.EMPTY : Style.EMPTY.fg(color);
-        var spans = new ArrayList<Span>();
-        spans.add(Span.styled(line.marker() + " ", style));
-        for (var segment : line.segments()) {
-            spans
-                .add(Span.styled(segment.text(), segment.changed() && color != null ? style.reversed().bold() : style));
-        }
-        return Line.from(spans);
-    }
-
-    private static Text stackTrace(Execution execution) {
-        var stackTrace = execution.getStackTrace();
-        if (stackTrace == null) {
-            return Text.styled("No stack trace", Style.EMPTY.dim());
-        }
-        return Text.from(
-            stackTrace.replace("\t", "    ")
-                .lines()
-                .map(
-                    line -> PrCommand.isStackFrame(line)
-                        ? Line.styled(line, Style.EMPTY.dim())
-                        : Line.from(line)
-                )
-                .toList()
         );
     }
 

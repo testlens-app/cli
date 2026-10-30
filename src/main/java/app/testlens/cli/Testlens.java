@@ -10,7 +10,7 @@ import picocli.CommandLine.Command;
 @Command(
     name = "testlens",
     mixinStandardHelpOptions = true,
-    subcommands = { PrCommand.class },
+    subcommands = { PrCommand.class, TestCommand.class, StatisticsCommand.class },
     versionProvider = Testlens.VersionResourceReader.class
 )
 public class Testlens {
