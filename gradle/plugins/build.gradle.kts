@@ -10,7 +10,7 @@ dependencies {
     implementation("com.autonomousapps:dependency-analysis-gradle-plugin:3.20.0")
     implementation("com.diffplug.spotless:spotless-plugin-gradle:8.10.4")
     implementation("io.fuchs.gradle.classpath-collision-detector:classpath-collision-detector:1.0.0")
-    implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:5.1.1")
+    implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:5.2.0")
     implementation("org.graalvm.buildtools:native-gradle-plugin:1.1.18")
     implementation("net.ltgt.nullaway:net.ltgt.nullaway.gradle.plugin:3.3.0")
     implementation("org.gradlex:jvm-dependency-conflict-resolution:2.5")
