@@ -38,7 +38,7 @@ sourceSets {
 
 val downloadOpenApiSpec =
     tasks.register("downloadOpenApiSpec") {
-        val uri = "https://api.testlens.app/v1/openapi"
+        val uri = "https://api.testlens.app/v1/openapi/dev"
         inputs.property("uri", uri)
         val specFile = layout.buildDirectory.file("openapi-spec.yml")
         outputs.file(specFile)
