@@ -91,6 +91,7 @@ class TestCommandTest {
         assertThat(result.stdout().lines()).containsExactly(
             "NetworkTests > connects() (test 1729)",
             "   [engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]",
+            "   newest first, successful runs are not shown",
             "    1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
             "       :core:test · 0123456 @ main",
             "       - foo bar",

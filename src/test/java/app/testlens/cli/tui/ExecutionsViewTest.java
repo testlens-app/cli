@@ -3,6 +3,7 @@ package app.testlens.cli.tui;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.testlens.cli.ExecutionsLoader;
 import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.tui.controller.ExecutionsController;
 import app.testlens.cli.tui.model.ExecutionsModel;
@@ -61,7 +62,7 @@ class ExecutionsViewTest {
     void shows_a_dialog_without_executions() {
         var view = view(TEST);
 
-        assertThat(render(view)).contains("No executions of this test in the last 30 days.");
+        assertThat(render(view)).contains("No failed executions of this test in the last 30 days.");
     }
 
     @Test
@@ -87,7 +88,8 @@ class ExecutionsViewTest {
                 List.of(
                     execution(TestExecutionResponse.OutcomeEnum.FAILED, ":core:test"),
                     execution(TestExecutionResponse.OutcomeEnum.SUCCESSFUL, ":core:testJava21")
-                )
+                ),
+                false
             )
         );
         var view = new ExecutionsView(controller, controller.model());
@@ -98,10 +100,37 @@ class ExecutionsViewTest {
         assertThat(render(view)).contains("Exec:  #2/2");
     }
 
+    @Test
+    void loads_appended_pages_when_the_selection_reaches_the_end() {
+        var focusManager = new FocusManager();
+        var model = new ExecutionsModel(
+            TEST,
+            List.of(execution(TestExecutionResponse.OutcomeEnum.FAILED, "first")),
+            true
+        );
+        var controller = new ExecutionsController(focusManager, model, () -> {
+            model.append(
+                new ExecutionsLoader.Fetched(
+                    List.of(execution(TestExecutionResponse.OutcomeEnum.FAILED, "second")),
+                    false
+                )
+            );
+            return true;
+        });
+        focusManager.setFocus(ExecutionsController.EXECUTIONS_ID);
+
+        // moving down past the first row loads the next page, then selects into it
+        controller.handleTableKey(dev.tamboui.tui.event.KeyEvent.ofChar('j'));
+        assertThat(controller.model().executions()).hasSize(2);
+        assertThat(model.snapshot().executionIndex()).isEqualTo(1);
+        assertThat(model.hasMoreExecutions()).isFalse();
+        assertThat(render(new ExecutionsView(controller, model))).contains("first").contains("second");
+    }
+
     private static ExecutionsView view(TestInfo test, TestExecutionResponse... executions) {
         var controller = new ExecutionsController(
             new dev.tamboui.toolkit.focus.FocusManager(),
-            new ExecutionsModel(test, List.of(executions))
+            new ExecutionsModel(test, List.of(executions), false)
         );
         return new ExecutionsView(controller, controller.model());
     }

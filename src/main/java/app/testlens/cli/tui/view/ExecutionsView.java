@@ -61,7 +61,7 @@ public final class ExecutionsView implements ScreenRouter.Screen {
     private static final String BRANCH_LABEL = "Branch";
     private static final String SHA_LABEL = "sha";
     private static final String START_LABEL = "Start";
-    private static final String NO_EXECUTIONS_MESSAGE = "No executions of this test in the last 30 days.";
+    private static final String NO_EXECUTIONS_MESSAGE = "No failed executions of this test in the last 30 days.";
     private static final int COLUMN_SPACING = 3;
     private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 4 * COLUMN_SPACING;
     private static final int TABLE_CHROME_HEIGHT = 3;
@@ -79,6 +79,7 @@ public final class ExecutionsView implements ScreenRouter.Screen {
     private final RichTextAreaElement detailsArea;
     private final TableElement table;
     private int tableWidth = -1;
+    private int tableRows = -1;
     private ExecutionsModel.@Nullable Snapshot lastSnapshot;
 
     public ExecutionsView(ExecutionsController controller, ExecutionsModel model) {
@@ -186,12 +187,14 @@ public final class ExecutionsView implements ScreenRouter.Screen {
         };
     }
 
-    // the executions do not change while the screen is visible, so the column layout is memoized by width only
+    // the column layout depends on the widest cell of each column, which appended pages can change, so it is
+    // memoized by width and row count
     private void fitColumns(int width) {
-        if (width == tableWidth) {
+        if (width == tableWidth && model.executions().size() == tableRows) {
             return;
         }
         tableWidth = width;
+        tableRows = model.executions().size();
         var executions = model.executions();
         var outcomeWidth = outcomeWidth(executions);
         var available = Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - SHA_WIDTH - START_WIDTH);

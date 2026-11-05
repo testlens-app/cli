@@ -3,6 +3,7 @@ package app.testlens.cli.tui;
 
 import static app.testlens.cli.tui.model.TestInfo.of;
 
+import app.testlens.cli.ExecutionsLoader;
 import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.TestsApi;
 import app.testlens.cli.client.model.FlakinessStatisticResponse;
@@ -63,11 +64,23 @@ public final class StatisticsTui {
     ) {
         try {
             var test = of(statistic);
-            var executions =
-                testsApi.getTestExecutions(owner, repo, test.id(), null, null, null, null);
-            var model = new ExecutionsModel(test, executions);
-            var screen = new ExecutionsView(new ExecutionsController(focusManager, model), model);
-            router.push(screen);
+            var loader = new ExecutionsLoader(testsApi, owner, repo, test.id());
+            var first = loader.first();
+            var model = new ExecutionsModel(test, first.executions(), first.hasMore());
+            var controller = new ExecutionsController(focusManager, model, () -> {
+                try {
+                    var next = loader.next();
+                    if (next != null) {
+                        model.append(next);
+                        return true;
+                    }
+                    return false;
+                } catch (ApiException e) {
+                    listController.openFailed(errorMessage(e));
+                    return false;
+                }
+            });
+            router.push(new ExecutionsView(controller, model));
         } catch (ApiException e) {
             listController.openFailed(errorMessage(e));
         }

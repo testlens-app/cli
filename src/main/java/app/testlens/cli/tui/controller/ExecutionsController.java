@@ -15,7 +15,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Input handling for the test executions screen with its two panes: the executions table and the scrollable details
- * area. The model is the source of truth for the selection; the table state follows it.
+ * area. The model is the source of truth for the selection; the table state follows it. When the user navigates past
+ * the last row and another page may follow, the {@code loadNextPage} callback appends it.
  */
 public final class ExecutionsController {
 
@@ -26,12 +27,22 @@ public final class ExecutionsController {
 
     private final FocusManager focusManager;
     private final ExecutionsModel model;
+    private final java.util.function.BooleanSupplier loadNextPage;
     private final TableState tableState = new TableState();
     private @Nullable RichTextAreaElement detailsArea;
 
     public ExecutionsController(FocusManager focusManager, ExecutionsModel model) {
+        this(focusManager, model, () -> false);
+    }
+
+    public ExecutionsController(
+        FocusManager focusManager,
+        ExecutionsModel model,
+        java.util.function.BooleanSupplier loadNextPage
+    ) {
         this.focusManager = focusManager;
         this.model = model;
+        this.loadNextPage = loadNextPage;
         tableState.select(model.snapshot().executionIndex());
     }
 
@@ -77,6 +88,10 @@ public final class ExecutionsController {
             target = model.executions().size() - 1;
         } else {
             return EventResult.UNHANDLED;
+        }
+        // navigating past the last row loads pages until the target index exists
+        while (target > model.executions().size() - 1 && model.hasMoreExecutions() && loadNextPage.getAsBoolean()) {
+            // loaded; the loop condition re-checks the appended pages
         }
         model.selectExecution(target);
         tableState.select(model.snapshot().executionIndex());

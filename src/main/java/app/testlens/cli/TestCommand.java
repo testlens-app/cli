@@ -157,14 +157,14 @@ public class TestCommand implements Callable<Integer> {
             showProgress(out, ansi, "Fetching test...");
             var test = api.getTest(owner, repoName, testId);
             clearProgress(out, ansi);
-            showProgress(out, ansi, "Fetching executions...");
-            var executions = api.getTestExecutions(owner, repoName, testId, null, null, null, null);
-            clearProgress(out, ansi);
             var info = TestInfo.of(test);
             if (tui) {
-                TestExecutionsTui.run(info, executions);
+                TestExecutionsTui.run(info, new ExecutionsLoader(api, owner, repoName, testId));
             } else {
-                printTest(out, ansi, info, executions);
+                showProgress(out, ansi, "Fetching executions...");
+                var executions = new ExecutionsLoader(api, owner, repoName, testId).first();
+                clearProgress(out, ansi);
+                printTest(out, ansi, info, executions.executions());
             }
             return 0;
         } catch (ApiException e) {
@@ -214,9 +214,10 @@ public class TestCommand implements Callable<Integer> {
     ) {
         out.println(styled(ansi, test.displayName(), Style.bold) + " (test " + test.id() + ")");
         out.println("   " + styled(ansi, test.uniqueId(), Style.faint));
+        out.println("   " + styled(ansi, "newest first, successful runs are not shown", Style.faint));
         if (executions.isEmpty()) {
             out.println();
-            out.println("No executions in the last 30 days.");
+            out.println("No failed executions in the last 30 days.");
             return;
         }
         for (int i = 0; i < executions.size(); i++) {
