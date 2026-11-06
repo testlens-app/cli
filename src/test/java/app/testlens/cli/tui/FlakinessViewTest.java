@@ -110,6 +110,7 @@ class FlakinessViewTest {
             .uniqueId("[engine:junit-jupiter]/[class:" + className + "]/[method:" + method + "]")
             .displayNames(List.of("JUnit Jupiter", className, method))
             .workUnit(workUnit)
+            .branch("main")
             .failed(new FailedCount().count(1L).total(200L).percentage(1))
             .flaky(new FlakyCount().count(flakyCount).total(200L).percentage(percentage).severity(severity))
             .links(new StatisticLinks().test(new Link().href("/v1/repos/some-org/some-repo/tests/" + id)));

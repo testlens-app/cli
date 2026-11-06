@@ -51,12 +51,22 @@ public final class ExecutionsLoader {
     private Fetched fetch(int page) throws ApiException {
         nextPage = page + 1;
         var response = api
-            .getTestExecutionsWithHttpInfo(owner, repo, testId, NON_SUCCESSFUL_OUTCOMES, null, page, null, Map.of());
+            .getTestExecutionsWithHttpInfo(
+                owner,
+                repo,
+                testId,
+                NON_SUCCESSFUL_OUTCOMES,
+                null,
+                null,
+                page,
+                null,
+                Map.of()
+            );
         hasMore = hasRelNext(response.getHeaders());
         return new Fetched(response.getData() == null ? List.of() : response.getData(), hasMore);
     }
 
-    static boolean hasRelNext(Map<String, List<String>> headers) {
+    public static boolean hasRelNext(Map<String, List<String>> headers) {
         return headers.entrySet()
             .stream()
             .filter(header -> header.getKey().equalsIgnoreCase("Link"))

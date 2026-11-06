@@ -221,35 +221,52 @@ public class TestCommand implements Callable<Integer> {
             return;
         }
         for (int i = 0; i < executions.size(); i++) {
-            var execution = executions.get(i);
-            var outcome = execution.getOutcome();
-            var htmlUrl = execution.getHtmlUrl();
-            var seeJob = htmlUrl == null
-                ? ""
-                : ", see " + (ansi.enabled()
-                    ? link(styled(ansi, "job", Style.underline), htmlUrl)
-                    : htmlUrl);
+            printExecution(out, ansi, "    ", i + 1, executions.get(i), true);
+        }
+    }
+
+    /**
+     * Prints a numbered execution with its diagnostics; {@code withWhere} adds the work unit, sha and branch, which
+     * the caller may already have printed.
+     */
+    static void printExecution(
+        java.io.PrintWriter out,
+        Ansi ansi,
+        String indent,
+        int number,
+        TestExecutionResponse execution,
+        boolean withWhere
+    ) {
+        var detailIndent = indent + "   ";
+        var outcome = execution.getOutcome();
+        var htmlUrl = execution.getHtmlUrl();
+        var seeJob = htmlUrl == null
+            ? ""
+            : ", see " + (ansi.enabled()
+                ? link(styled(ansi, "job", Style.underline), htmlUrl)
+                : htmlUrl);
+        out.println(
+            indent + number + ". " + styled(ansi, outcome.toString(), color(outcome)) + " ("
+                + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()) + seeJob + ")"
+        );
+        if (withWhere) {
             out.println(
-                "    " + (i + 1) + ". " + styled(ansi, outcome.toString(), color(outcome)) + " ("
-                    + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()) + seeJob + ")"
-            );
-            out.println(
-                "       " + styled(
+                detailIndent + styled(
                     ansi,
                     execution.getWorkUnit() + " · " + sha(execution) + " @ " + execution.getBranch(),
                     Style.faint
                 )
             );
-            TextDiff.diff(execution.getComparisonFailure())
-                .ifPresent(diff -> diff.forEach(line -> out.println("       " + diffLine(ansi, line))));
-            var stackTrace = execution.getStackTrace();
-            if (stackTrace != null) {
-                // terminals align tabs to their tab stops, which would make frames barely indented
-                stackTrace.replace("\t", "    ")
-                    .lines()
-                    .map(line -> PrCommand.isStackFrame(line) ? styled(ansi, line, Style.faint) : line)
-                    .forEach(line -> out.println("       " + line));
-            }
+        }
+        TextDiff.diff(execution.getComparisonFailure())
+            .ifPresent(diff -> diff.forEach(line -> out.println(detailIndent + diffLine(ansi, line))));
+        var stackTrace = execution.getStackTrace();
+        if (stackTrace != null) {
+            // terminals align tabs to their tab stops, which would make frames barely indented
+            stackTrace.replace("\t", "    ")
+                .lines()
+                .map(line -> PrCommand.isStackFrame(line) ? styled(ansi, line, Style.faint) : line)
+                .forEach(line -> out.println(detailIndent + line));
         }
     }
 

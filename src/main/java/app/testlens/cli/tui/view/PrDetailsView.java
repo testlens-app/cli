@@ -144,7 +144,11 @@ public final class PrDetailsView {
                 ),
                 Line.from(
                     Span.raw("Job:   "),
-                    Span.styled(execution.getHtmlUrl(), Style.EMPTY.underlined().hyperlink(execution.getHtmlUrl()))
+                    // flakes may lack a job URL, which is mapped to an empty one
+                    execution.getHtmlUrl().isEmpty()
+                        ? Span.raw("-")
+                        : Span
+                            .styled(execution.getHtmlUrl(), Style.EMPTY.underlined().hyperlink(execution.getHtmlUrl()))
                 )
             )
         );

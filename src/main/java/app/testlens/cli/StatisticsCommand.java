@@ -110,10 +110,14 @@ public class StatisticsCommand {
                 showProgress(out, ansi, "Fetching statistics...");
                 var statistics = api.getFlakinessStatistics(owner, repoName, branch, null, null);
                 clearProgress(out, ansi);
+                // without --branch, the server reports on the default branch, which is named in the statistics
+                var shownBranch = branch != null
+                    ? branch
+                    : statistics.stream().findFirst().map(FlakinessStatisticResponse::getBranch).orElse(null);
                 if (tui) {
-                    StatisticsTui.run(new TestsApi(apiClient), owner, repoName, branch, statistics);
+                    StatisticsTui.run(new TestsApi(apiClient), owner, repoName, shownBranch, statistics);
                 } else {
-                    printStatistics(out, ansi, branch, statistics);
+                    printStatistics(out, ansi, shownBranch, statistics);
                 }
                 return 0;
             } catch (ApiException e) {

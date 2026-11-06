@@ -106,7 +106,7 @@ public final class FlakinessView implements ScreenRouter.Screen {
     }
 
     private Element footer() {
-        return text("↑/↓ select · Enter view executions · Esc/q quit").dim().length(1);
+        return text("↑/↓ select · Enter view flakes · Esc/q quit").dim().length(1);
     }
 
     private Element statisticsTable(Constraint constraint) {
