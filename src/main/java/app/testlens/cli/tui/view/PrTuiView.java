@@ -40,7 +40,7 @@ public final class PrTuiView {
         if (controller.hasTests()) {
             return content;
         }
-        var message = "No failing tests detected on pull request #" + controller.model().getPrNumber();
+        var message = controller.model().emptyMessage();
         return stack(
             content,
             dialog(text(message)).rounded().borderColor(YELLOW).width(message.length() + 4)

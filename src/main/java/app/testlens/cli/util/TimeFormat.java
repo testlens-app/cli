@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.util;
 
-import app.testlens.cli.client.model.Execution;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.StringJoiner;
+import org.jspecify.annotations.Nullable;
 
 public final class TimeFormat {
 
@@ -15,9 +16,8 @@ public final class TimeFormat {
     private TimeFormat() {}
 
     /** Formats start and end time in UTC and the duration, e.g. {@code 2026-01-02 03:04:05Z - 03:04:06Z (1s 500ms)}. */
-    public static String formatTime(Execution execution) {
-        var start = execution.getStartTime().atZoneSameInstant(ZoneOffset.UTC);
-        var durationMillis = execution.getDurationMillis();
+    public static String formatTime(OffsetDateTime startTime, @Nullable Long durationMillis) {
+        var start = startTime.atZoneSameInstant(ZoneOffset.UTC);
         if (durationMillis == null) {
             return DATE_TIME.format(start);
         }

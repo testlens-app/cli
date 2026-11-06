@@ -6,24 +6,36 @@ import static java.util.Objects.requireNonNull;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
+import java.util.List;
 
 /**
  * Model of the PR test browser TUI: the pull request data and the state of the details pane. Exposes immutable
- * snapshots ({@link #details()}), so views can render consistently and detect changes by value.
+ * snapshots ({@link #details()}), so views can render consistently and detect changes by value. Also backs the details
+ * pane of the flakes screen, where each flake is presented as an {@link ExecutedTest}.
  */
 public final class PrTuiModel {
 
-    private final PullRequestResponse prResponse;
-    private final PullRequestTestsResponse testsResponse;
+    private final String title;
+    private final String emptyMessage;
+    private final boolean hasTests;
     private DetailsModel details = DetailsModel.EMPTY;
 
     public PrTuiModel(PullRequestResponse prResponse, PullRequestTestsResponse testsResponse) {
-        this.prResponse = requireNonNull(prResponse);
-        this.testsResponse = requireNonNull(testsResponse);
+        this(
+            prResponse.getTitle() + " (#" + prResponse.getNumber() + ") · " + testsResponse.getSha(),
+            "No failing tests detected on pull request #" + prResponse.getNumber(),
+            testsResponse.getTests()
+        );
+    }
+
+    public PrTuiModel(String title, String emptyMessage, List<ExecutedTest> tests) {
+        this.title = requireNonNull(title);
+        this.emptyMessage = requireNonNull(emptyMessage);
+        this.hasTests = !tests.isEmpty();
     }
 
     public boolean hasTests() {
-        return !testsResponse.getTests().isEmpty();
+        return hasTests;
     }
 
     /** Current state of the details pane as an immutable snapshot. */
@@ -42,10 +54,11 @@ public final class PrTuiModel {
     }
 
     public String getTitle() {
-        return prResponse.getTitle() + " (#" + prResponse.getNumber() + ") · " + testsResponse.getSha();
+        return title;
     }
 
-    public int getPrNumber() {
-        return requireNonNull(prResponse.getNumber());
+    /** Message of the dialog shown when there are no tests. */
+    public String emptyMessage() {
+        return emptyMessage;
     }
 }

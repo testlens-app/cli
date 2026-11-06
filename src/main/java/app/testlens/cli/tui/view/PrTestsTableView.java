@@ -166,11 +166,11 @@ public final class PrTestsTableView {
     }
 
     // presentation of the aggregated outcome: the model only knows the domain state
-    private static Color colorFor(AggregatedOutcome outcome) {
+    static Color colorFor(AggregatedOutcome outcome) {
         return outcome.flaky() ? Color.YELLOW : outcomeColor(outcome.max());
     }
 
-    private static String outcomeLabel(AggregatedOutcome outcome) {
+    static String outcomeLabel(AggregatedOutcome outcome) {
         return outcome.flaky() ? "FLAKY" : outcome.max().name();
     }
 
