@@ -54,7 +54,7 @@ public class FlakesCommand implements Callable<Integer> {
     @Nullable
     String branch;
 
-    @Option(names = {"--task", "--project"}, description = "Only flakes for this task/project")
+    @Option(names = { "--task", "--project" }, description = "Only flakes for this task/project")
     @Nullable
     String workUnit;
 
@@ -137,7 +137,8 @@ public class FlakesCommand implements Callable<Integer> {
     ) throws ApiException {
         var flakes = new ArrayList<FlakeResponse>();
         for (int page = 1;; page++) {
-            var response = api.getTestFlakesWithHttpInfo(owner, repo, testId, null, branch, workUnit, page, null, Map.of());
+            var response =
+                api.getTestFlakesWithHttpInfo(owner, repo, testId, null, branch, workUnit, page, null, Map.of());
             if (response.getData() != null) {
                 flakes.addAll(response.getData());
             }

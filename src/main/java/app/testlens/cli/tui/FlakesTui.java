@@ -16,7 +16,12 @@ public final class FlakesTui {
 
     private FlakesTui() {}
 
-    public static void run(TestInfo test, @Nullable String branch, @Nullable String workUnit, List<FlakeResponse> flakes) throws Exception {
+    public static void run(
+        TestInfo test,
+        @Nullable String branch,
+        @Nullable String workUnit,
+        List<FlakeResponse> flakes
+    ) throws Exception {
         try (var runner = ToolkitRunner.create()) {
             var controller = new FlakesController(runner.focusManager(), test, flakes);
             var router = new ScreenRouter(new FlakesView(controller, test, branch, workUnit), runner.focusManager());

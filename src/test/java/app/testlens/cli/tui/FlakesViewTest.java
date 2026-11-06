@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.client.model.FlakeResponse;
@@ -53,10 +54,12 @@ class FlakesViewTest {
             ":core:test",
             "0123456",
             "2026-01-02 03:04",
-            "Where: 0123456 @ main > :core:test",
             // the newest execution is shown by default
-            "Time:  2026-01-02 04:04:05Z"
+            "Time: 2026-01-02 04:04:05Z",
+            "Job:  -"
         );
+        // the same for all executions of a flake, so not repeated in the details pane
+        assertThat(screen).doesNotContain("Test:", "Where:");
         assertThat(screen.indexOf("#1 FAILED")).isPositive().isLessThan(screen.indexOf("#2 SUCCESSFUL"));
     }
 
@@ -73,7 +76,9 @@ class FlakesViewTest {
 
         controller.handleKey(KeyEvent.ofChar('j'));
 
-        assertThat(render(view)).contains("Where: 2222222 @ main > :second");
+        render(view);
+        assertThat(requireNonNull(controller.model().details().test()).getWorkUnit())
+            .isEqualTo(":second");
     }
 
     @Test

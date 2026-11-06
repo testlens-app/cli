@@ -70,13 +70,14 @@ public final class FlakesView implements ScreenRouter.Screen {
     private final FlakesController controller;
     private final String title;
     private final TableElement table;
-    private final PrDetailsView details;
+    private final FlakeDetailsView details;
     private int tableWidth = -1;
 
     public FlakesView(FlakesController controller, TestInfo test, @Nullable String branch, @Nullable String workUnit) {
         this.controller = controller;
-        this.title = test.displayName() + " · test " + test.id() + (branch == null ? "" : " · branch " + branch) + (workUnit == null ? "" : " · task/project " + workUnit);
-        this.details = new PrDetailsView(controller.detailsController(), controller.model());
+        this.title = test.displayName() + " · test " + test.id() + (branch == null ? "" : " · branch " + branch)
+            + (workUnit == null ? "" : " · task/project " + workUnit);
+        this.details = new FlakeDetailsView(controller.detailsController(), controller.model());
         this.table = table()
             .id(VIEW_ID)
             .title("Flakes")
