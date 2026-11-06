@@ -63,13 +63,9 @@ public final class StatisticsTui {
     ) {
         try {
             var test = of(statistic);
-            // the statistic is per work unit, the flakes endpoint is not
-            var flakes = FlakesCommand.fetchFlakes(testsApi, owner, repo, test.id(), statistic.getBranch())
-                .stream()
-                .filter(flake -> flake.getWorkUnit().equals(statistic.getWorkUnit()))
-                .toList();
+            var flakes = FlakesCommand.fetchFlakes(testsApi, owner, repo, test.id(), statistic.getBranch(), statistic.getWorkUnit());
             var controller = new FlakesController(focusManager, test, flakes);
-            router.push(new FlakesView(controller, test, statistic.getBranch()));
+            router.push(new FlakesView(controller, test, statistic.getBranch(), statistic.getWorkUnit()));
         } catch (ApiException e) {
             listController.openFailed(errorMessage(e));
         }

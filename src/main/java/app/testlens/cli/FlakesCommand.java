@@ -54,6 +54,10 @@ public class FlakesCommand implements Callable<Integer> {
     @Nullable
     String branch;
 
+    @Option(names = {"--task", "--project"}, description = "Only flakes for this task/project")
+    @Nullable
+    String workUnit;
+
     @Option(
         names = "--repo",
         description = "Repository as owner/repo (defaults to the GitHub remote 'origin' of the current directory)"
@@ -108,12 +112,12 @@ public class FlakesCommand implements Callable<Integer> {
             var test = TestInfo.of(api.getTest(owner, repoName, id));
             clearProgress(out, ansi);
             showProgress(out, ansi, "Fetching flakes...");
-            var flakes = fetchFlakes(api, owner, repoName, id, branch);
+            var flakes = fetchFlakes(api, owner, repoName, id, branch, workUnit);
             clearProgress(out, ansi);
             if (tui) {
-                FlakesTui.run(test, branch, flakes);
+                FlakesTui.run(test, branch, workUnit, flakes);
             } else {
-                printFlakes(out, ansi, test, branch, flakes);
+                printFlakes(out, ansi, test, branch, workUnit, flakes);
             }
             return 0;
         } catch (ApiException e) {
@@ -128,11 +132,12 @@ public class FlakesCommand implements Callable<Integer> {
         String owner,
         String repo,
         long testId,
-        @Nullable String branch
+        @Nullable String branch,
+        @Nullable String workUnit
     ) throws ApiException {
         var flakes = new ArrayList<FlakeResponse>();
         for (int page = 1;; page++) {
-            var response = api.getTestFlakesWithHttpInfo(owner, repo, testId, null, branch, page, null, Map.of());
+            var response = api.getTestFlakesWithHttpInfo(owner, repo, testId, null, branch, workUnit, page, null, Map.of());
             if (response.getData() != null) {
                 flakes.addAll(response.getData());
             }
@@ -147,11 +152,13 @@ public class FlakesCommand implements Callable<Integer> {
         Ansi ansi,
         TestInfo test,
         @Nullable String branch,
+        @Nullable String workUnit,
         List<FlakeResponse> flakes
     ) {
         out.println(
             styled(ansi, test.displayName(), Style.bold) + " (test " + test.id() + ")"
                 + (branch == null ? "" : " · branch " + branch)
+                + (workUnit == null ? "" : " · project/task " + workUnit)
         );
         out.println("   " + styled(ansi, test.uniqueId(), Style.faint));
         out.println("   " + styled(ansi, "newest flake first, executions in chronological order", Style.faint));

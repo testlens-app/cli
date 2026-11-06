@@ -73,9 +73,9 @@ public final class FlakesView implements ScreenRouter.Screen {
     private final PrDetailsView details;
     private int tableWidth = -1;
 
-    public FlakesView(FlakesController controller, TestInfo test, @Nullable String branch) {
+    public FlakesView(FlakesController controller, TestInfo test, @Nullable String branch, @Nullable String workUnit) {
         this.controller = controller;
-        this.title = test.displayName() + " · test " + test.id() + (branch == null ? "" : " · branch " + branch);
+        this.title = test.displayName() + " · test " + test.id() + (branch == null ? "" : " · branch " + branch) + (workUnit == null ? "" : " · task/project " + workUnit);
         this.details = new PrDetailsView(controller.detailsController(), controller.model());
         this.table = table()
             .id(VIEW_ID)

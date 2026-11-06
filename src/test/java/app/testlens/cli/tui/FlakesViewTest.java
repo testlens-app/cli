@@ -43,7 +43,7 @@ class FlakesViewTest {
         var focusManager = new FocusManager();
         var controller = new FlakesController(focusManager, TEST, List.of(flake("0123456789", ":core:test")));
 
-        var screen = render(new FlakesView(controller, TEST, "main"));
+        var screen = render(new FlakesView(controller, TEST, "main", null));
 
         assertThat(screen).contains(
             "NetworkTests > connects() · test 1729 · branch main",
@@ -68,7 +68,7 @@ class FlakesViewTest {
             TEST,
             List.of(flake("1111111111", ":first"), flake("2222222222", ":second"))
         );
-        var view = new FlakesView(controller, TEST, null);
+        var view = new FlakesView(controller, TEST, null, null);
         focusManager.setFocus(FlakesController.VIEW_ID);
 
         controller.handleKey(KeyEvent.ofChar('j'));
@@ -80,7 +80,7 @@ class FlakesViewTest {
     void shows_a_dialog_without_flakes() {
         var controller = new FlakesController(new FocusManager(), TEST, List.of());
 
-        assertThat(render(new FlakesView(controller, TEST, null)))
+        assertThat(render(new FlakesView(controller, TEST, null, null)))
             .contains("No flakes of this test in the last 30 days.");
     }
 
