@@ -7,7 +7,7 @@ tasks.test {
 }
 
 dependencies {
-    implementation("com.autonomousapps:dependency-analysis-gradle-plugin:3.20.1")
+    implementation("com.autonomousapps:dependency-analysis-gradle-plugin:3.20.2")
     implementation("com.diffplug.spotless:spotless-plugin-gradle:8.11.0")
     implementation("io.fuchs.gradle.classpath-collision-detector:classpath-collision-detector:1.0.0")
     implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:5.2.0")
