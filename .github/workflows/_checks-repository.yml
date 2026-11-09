@@ -16,4 +16,4 @@ jobs:
         - name: Run commitlint
           uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed #v6.2.1
         - name: Run actionlint
-          uses: kjanat/actionlint@08bb2c4f0d039744455b87aef1c647fb8b66d37b # v1.17.0
+          uses: kjanat/actionlint@220b76cfa568e00ed8b3c476898f849a722b88e2 # v1.17.1
