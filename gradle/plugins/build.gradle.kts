@@ -35,7 +35,7 @@ dependencies {
         }
         implementation("org.bouncycastle:bcprov-jdk18on") {
             version {
-                require("1.86")
+                require("1.87")
             }
             because("Workaround for CVE-2026-8763")
         }
