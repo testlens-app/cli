@@ -48,7 +48,7 @@ public class FlakesCommand implements Callable<Integer> {
     @Nullable
     CommandSpec spec;
 
-    @Parameters(index = "0", description = "Internal test ID")
+    @Parameters(index = "0", description = "Internal test ID, e.g. from testlens statistics flakiness")
     long id;
 
     @Option(names = "--branch", description = "Only flakes on this branch; PR builds count toward their target branch")

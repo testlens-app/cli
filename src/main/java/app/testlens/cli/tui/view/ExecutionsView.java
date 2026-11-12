@@ -17,6 +17,7 @@ import static dev.tamboui.toolkit.Toolkit.text;
 import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.TestExecutionResponse;
+import app.testlens.cli.tui.ScreenRouter;
 import app.testlens.cli.tui.controller.ExecutionsController;
 import app.testlens.cli.tui.model.ExecutionsModel;
 import app.testlens.cli.util.TimeFormat;
@@ -51,7 +52,7 @@ import org.jspecify.annotations.Nullable;
  * The detail view of a single test: its recent executions in a table and the selected execution with diagnostics in the
  * details pane below. Reached directly via {@code testlens test <id>}.
  */
-public final class ExecutionsView {
+public final class ExecutionsView implements ScreenRouter.Screen {
 
     /** Visible rows of the executions table, shared with the controller for page-wise selection. */
     public static final int MAX_VISIBLE_EXECUTIONS = 10;
@@ -104,6 +105,12 @@ public final class ExecutionsView {
         this.table = executionsTable();
     }
 
+    @Override
+    public String focusId() {
+        return EXECUTIONS_ID;
+    }
+
+    @Override
     public Element render() {
         sync();
         var executions = model.executions();

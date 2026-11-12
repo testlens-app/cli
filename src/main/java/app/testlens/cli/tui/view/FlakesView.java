@@ -17,6 +17,7 @@ import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.FlakeResponse;
+import app.testlens.cli.tui.ScreenRouter;
 import app.testlens.cli.tui.controller.FlakesController;
 import app.testlens.cli.tui.model.AggregatedOutcome;
 import app.testlens.cli.tui.model.TestInfo;
@@ -44,9 +45,10 @@ import org.jspecify.annotations.Nullable;
 /**
  * The flakes of a test: one table row per build in which the test flaked, and the executions of the selected flake in
  * chronological order as tabs of the details pane below, like in the PR TUI. Reached directly via
- * {@code testlens flakes <id>}.
+ * {@code testlens flakes <id>} and as the drill-down of the ranked statistics list, which pushes it onto the
+ * {@link ScreenRouter}.
  */
-public final class FlakesView {
+public final class FlakesView implements ScreenRouter.Screen {
 
     /** Visible rows of the flakes table, shared with the controller for page-wise selection. */
     public static final int MAX_VISIBLE_FLAKES = 10;
@@ -106,6 +108,12 @@ public final class FlakesView {
             .onKeyEvent(controller::handleKey);
     }
 
+    @Override
+    public String focusId() {
+        return VIEW_ID;
+    }
+
+    @Override
     public Element render() {
         table.borderColor(controller.isFocused() ? Color.CYAN : Color.DARK_GRAY);
         var flakes = controller.flakes();
