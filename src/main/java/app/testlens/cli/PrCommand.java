@@ -20,6 +20,7 @@ import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
 import app.testlens.cli.tui.PrTui;
+import app.testlens.cli.util.Console;
 import app.testlens.cli.util.TextDiff;
 import app.testlens.cli.util.TimeFormat;
 import java.io.PrintWriter;
@@ -190,6 +191,10 @@ public class PrCommand implements Callable<Integer> {
                             + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()) + ", see "
                             + jobLink + ")"
                     );
+                    var environment = Console.environment(execution.getBuildEnvironment());
+                    if (environment != null) {
+                        out.println("       " + styled(ansi, environment, Style.faint));
+                    }
                     TextDiff.diff(execution.getComparisonFailure())
                         .ifPresent(diff -> diff.forEach(line -> out.println("       " + diffLine(ansi, line))));
                     var stackTrace = execution.getStackTrace();

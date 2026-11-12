@@ -18,6 +18,7 @@ import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.client.model.TestResponse;
 import app.testlens.cli.tui.TestExecutionsTui;
 import app.testlens.cli.tui.model.TestInfo;
+import app.testlens.cli.util.Console;
 import app.testlens.cli.util.TextDiff;
 import app.testlens.cli.util.TimeFormat;
 import java.util.List;
@@ -282,6 +283,10 @@ public class TestCommand implements Callable<Integer> {
                     Style.faint
                 )
             );
+            var environment = Console.environment(execution.getBuildEnvironment());
+            if (environment != null) {
+                out.println(detailIndent + styled(ansi, environment, Style.faint));
+            }
         }
         TextDiff.diff(execution.getComparisonFailure())
             .ifPresent(diff -> diff.forEach(line -> out.println(detailIndent + diffLine(ansi, line))));

@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.client.ApiClient;
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.client.model.ComparisonFailure;
 import app.testlens.cli.client.model.Link;
 import app.testlens.cli.client.model.TestExecutionResponse;
@@ -46,6 +47,12 @@ class TestCommandTest {
     private static final OffsetDateTime START_TIME = OffsetDateTime.parse("2026-01-02T03:04:05Z");
 
     private static final String UNIQUE_ID = "[engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]";
+
+    private static final BuildEnvironment ENVIRONMENT = new BuildEnvironment()
+        .osName("Linux")
+        .osVersion("6.8.0-45-generic")
+        .osArch("amd64")
+        .javaVersion("21.0.5");
 
     private static final Pattern OSC8_LINK = Pattern.compile("\\u001B]8;;(.*?)\\u001B\\\\");
 
@@ -100,6 +107,42 @@ class TestCommandTest {
             "           at Foo.bar(Foo.java:1)",
             "    2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s), see " + OTHER_JOB_URL + ")",
             "       :core:testJava21 · 89abcde @ main"
+        );
+    }
+
+    @Test
+    void prints_the_build_environment_of_executions() {
+        wireMock.stubFor(get(TEST_PATH).willReturn(json(testResponse())));
+        wireMock.stubFor(
+            get(urlPathEqualTo(EXECUTIONS_PATH))
+                .willReturn(
+                    json(
+                        List.of(
+                            failedExecution(true).buildEnvironment(ENVIRONMENT),
+                            successfulExecution(true).buildEnvironment(ENVIRONMENT)
+                        )
+                    )
+                )
+        );
+
+        var result =
+            run("test", "1729", "--repo", REPO, "--token", "good", "--mode=cli", "--base-url", wireMock.baseUrl());
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout().lines()).containsExactly(
+            "NetworkTests > connects() (test 1729)",
+            "   [engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]",
+            "   newest first, successful runs are not shown",
+            "    1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
+            "       CI / build > :core:test · 0123456 @ main",
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5",
+            "       - foo bar",
+            "       + foo baz",
+            "       java.lang.AssertionError: boom",
+            "           at Foo.bar(Foo.java:1)",
+            "    2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s), see " + OTHER_JOB_URL + ")",
+            "       :core:testJava21 · 89abcde @ main",
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5"
         );
     }
 

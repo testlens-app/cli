@@ -19,6 +19,7 @@ import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.tui.FlakesTui;
 import app.testlens.cli.tui.controller.FlakesController;
 import app.testlens.cli.tui.model.TestInfo;
+import app.testlens.cli.util.Console;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -188,6 +189,12 @@ public class FlakesCommand implements Callable<Integer> {
                 .stream()
                 .sorted(comparing(TestExecutionResponse::getStartTime))
                 .toList();
+            var environment = executions.isEmpty()
+                ? null
+                : Console.environment(executions.getFirst().getBuildEnvironment());
+            if (environment != null) {
+                out.println("     " + styled(ansi, environment, Style.faint));
+            }
             for (int j = 0; j < executions.size(); j++) {
                 TestCommand.printExecution(out, ansi, "      ", j + 1, executions.get(j), false);
             }

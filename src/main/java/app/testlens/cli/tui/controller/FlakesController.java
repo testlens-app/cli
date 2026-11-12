@@ -72,7 +72,8 @@ public final class FlakesController {
             .durationMillis(execution.getDurationMillis())
             .htmlUrl(Objects.requireNonNullElse(execution.getHtmlUrl(), ""))
             .stackTrace(execution.getStackTrace())
-            .comparisonFailure(execution.getComparisonFailure());
+            .comparisonFailure(execution.getComparisonFailure())
+            .buildEnvironment(execution.getBuildEnvironment());
     }
 
     public static String abbreviatedSha(String sha) {

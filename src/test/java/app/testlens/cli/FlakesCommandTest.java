@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.client.ApiClient;
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.client.model.FlakeResponse;
 import app.testlens.cli.client.model.Link;
 import app.testlens.cli.client.model.TestExecutionResponse;
@@ -34,6 +35,12 @@ class FlakesCommandTest {
     private static final String JOB_URL = "https://github.com/some-org/some-repo/actions/runs/1/job/101";
 
     private static final ObjectMapper OBJECT_MAPPER = ApiClient.createDefaultObjectMapper();
+
+    private static final BuildEnvironment ENVIRONMENT = new BuildEnvironment()
+        .osName("Linux")
+        .osVersion("6.8.0-45-generic")
+        .osArch("amd64")
+        .javaVersion("21.0.5");
 
     @RegisterExtension
     static WireMockExtension wireMock = WireMockExtension.newInstance()
@@ -74,6 +81,36 @@ class FlakesCommandTest {
             "   newest flake first, executions in chronological order",
             "",
             "  1. 0123456 @ main · :core:test · CI / build",
+            "      1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
+            "         java.lang.AssertionError: boom",
+            "      2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s))"
+        );
+    }
+
+    @Test
+    void prints_the_build_environment_of_each_flake() {
+        stubTest();
+        var flake = flake("0123456789", ":core:test").job("CI / build");
+        flake.executions(
+            flake
+                .getExecutions()
+                .stream()
+                .map(execution -> execution.buildEnvironment(ENVIRONMENT))
+                .toList()
+        );
+        wireMock.stubFor(get(urlPathEqualTo(FLAKES_PATH)).willReturn(json(List.of(flake))));
+
+        var result =
+            run("flakes", "1729", "--repo", REPO, "--token", "good", "--mode=cli", "--base-url", wireMock.baseUrl());
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout().lines()).containsExactly(
+            "NetworkTests > connects() (test 1729)",
+            "   [engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]",
+            "   newest flake first, executions in chronological order",
+            "",
+            "  1. 0123456 @ main · :core:test · CI / build",
+            "     Linux 6.8.0-45-generic · amd64 · Java 21.0.5",
             "      1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
             "         java.lang.AssertionError: boom",
             "      2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s))"

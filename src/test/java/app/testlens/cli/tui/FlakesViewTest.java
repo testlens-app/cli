@@ -4,6 +4,7 @@ package app.testlens.cli.tui;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.client.model.FlakeResponse;
 import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.tui.controller.FlakesController;
@@ -90,6 +91,31 @@ class FlakesViewTest {
 
         assertThat(render(new FlakesView(controller, TEST, null, null, null)))
             .contains("No flakes of this test in the last 30 days.");
+    }
+
+    @Test
+    void shows_the_build_environment_of_the_selected_flake() {
+        var flake = flake("0123456789", ":core:test");
+        flake.executions(
+            flake
+                .getExecutions()
+                .stream()
+                .map(
+                    execution -> execution
+                        .buildEnvironment(
+                            new BuildEnvironment()
+                                .osName("Linux")
+                                .osVersion("6.8.0-45-generic")
+                                .osArch("amd64")
+                                .javaVersion("21.0.5")
+                        )
+                )
+                .toList()
+        );
+        var controller = new FlakesController(new FocusManager(), TEST, List.of(flake));
+
+        assertThat(render(new FlakesView(controller, TEST, null, null, null)))
+            .contains("Env:  Linux 6.8.0-45-generic · amd64 · Java 21.0.5");
     }
 
     // the executions are deliberately newest first, to verify the tabs are chronological

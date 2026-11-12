@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.util;
 
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.util.TextDiff.DiffLine;
 import java.io.PrintWriter;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 import picocli.CommandLine.Help.Ansi;
 import picocli.CommandLine.Help.Ansi.IStyle;
 
@@ -10,6 +15,28 @@ import picocli.CommandLine.Help.Ansi.IStyle;
 public final class Console {
 
     private Console() {}
+
+    /**
+     * Human-readable build environment, e.g. {@code "Linux 6.8.0-45-generic · amd64 · Java 21.0.5"}; {@code null}
+     * without any data, so callers can omit the environment instead of printing placeholders.
+     */
+    public static @Nullable String environment(@Nullable BuildEnvironment environment) {
+        if (environment == null) {
+            return null;
+        }
+        var os = Stream.of(environment.getOsName(), environment.getOsVersion())
+            .filter(Objects::nonNull)
+            .collect(Collectors.joining(" "));
+        var parts = Stream
+            .of(
+                os.isEmpty() ? null : os,
+                environment.getOsArch(),
+                environment.getJavaVersion() == null ? null : "Java " + environment.getJavaVersion()
+            )
+            .filter(Objects::nonNull)
+            .toList();
+        return parts.isEmpty() ? null : String.join(" · ", parts);
+    }
 
     public static String styled(Ansi ansi, String text, IStyle... styles) {
         return ansi.enabled() ? Ansi.Style.on(styles) + text + Ansi.Style.reset.on() : text;

@@ -3,6 +3,7 @@ package app.testlens.cli.tui;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.client.model.ComparisonFailure;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
@@ -101,6 +102,32 @@ class PrTuiTest {
         controller.detailsController().handleKey(LEFT);
         assertThat(controller.detailsController().tabsState().selected()).isZero();
         assertThat(render(view)).contains("#1 SUCCESSFUL").doesNotContain("Outcome: ", "AssertionError");
+    }
+
+    @Test
+    void shows_the_build_environment_of_the_selected_execution() {
+        var controller = new PrTuiController(
+            new PullRequestResponse().number(42).title("Some PR"),
+            new PullRequestTestsResponse().sha("SHA")
+                .addTestsItem(
+                    executedTest(
+                        "foo()",
+                        execution(OutcomeEnum.FAILED)
+                            .htmlUrl(JOB_URL)
+                            .buildEnvironment(
+                                new BuildEnvironment()
+                                    .osName("Linux")
+                                    .osVersion("6.8.0-45-generic")
+                                    .osArch("amd64")
+                                    .javaVersion("21.0.5")
+                            )
+                    )
+                ),
+            new FocusManager()
+        );
+        var view = new PrTuiView(controller);
+
+        assertThat(render(view)).contains("Env:   Linux 6.8.0-45-generic · amd64 · Java 21.0.5");
     }
 
     @Test
