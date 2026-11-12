@@ -28,14 +28,28 @@ public final class ExecutionsLoader {
     private final String owner;
     private final String repo;
     private final long testId;
+    private final @Nullable String branch;
+    private final @Nullable String workUnit;
+    private final @Nullable String job;
     private int nextPage;
     private boolean hasMore;
 
-    public ExecutionsLoader(TestsApi api, String owner, String repo, long testId) {
+    public ExecutionsLoader(
+        TestsApi api,
+        String owner,
+        String repo,
+        long testId,
+        @Nullable String branch,
+        @Nullable String workUnit,
+        @Nullable String job
+    ) {
         this.api = api;
         this.owner = owner;
         this.repo = repo;
         this.testId = testId;
+        this.branch = branch;
+        this.workUnit = workUnit;
+        this.job = job;
     }
 
     /** Fetches the first page; resets the loader, so it can also be re-called after a back-navigation. */
@@ -57,8 +71,9 @@ public final class ExecutionsLoader {
                 testId,
                 NON_SUCCESSFUL_OUTCOMES,
                 null,
-                null,
-                null,
+                branch,
+                workUnit,
+                job,
                 page,
                 null,
                 Map.of()

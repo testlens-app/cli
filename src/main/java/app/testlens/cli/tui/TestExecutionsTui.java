@@ -10,13 +10,20 @@ import app.testlens.cli.tui.view.ExecutionsView;
 import dev.tamboui.toolkit.app.ToolkitRunner;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.tui.event.KeyEvent;
+import org.jspecify.annotations.Nullable;
 
 /** The test executions screen of the TUI, entered directly via {@code testlens test <id>}. */
 public final class TestExecutionsTui {
 
     private TestExecutionsTui() {}
 
-    public static void run(TestInfo test, ExecutionsLoader loader) throws Exception {
+    public static void run(
+        TestInfo test,
+        ExecutionsLoader loader,
+        @Nullable String branch,
+        @Nullable String workUnit,
+        @Nullable String job
+    ) throws Exception {
         try (var runner = ToolkitRunner.create()) {
             var first = loader.first();
             var model = new ExecutionsModel(test, first.executions(), first.hasMore());
@@ -33,7 +40,10 @@ public final class TestExecutionsTui {
                     return false;
                 }
             });
-            var router = new ScreenRouter(new ExecutionsView(controller, model), runner.focusManager());
+            var router = new ScreenRouter(
+                new ExecutionsView(controller, model, branch, workUnit, job),
+                runner.focusManager()
+            );
             // the modal "no executions" dialog consumes all keys before unfocused-element routing,
             // so back/quit has to be handled globally, ahead of the dialog
             runner.eventRouter().addGlobalHandler(event -> {

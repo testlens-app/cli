@@ -2,6 +2,7 @@
 package app.testlens.cli;
 
 import static app.testlens.cli.CommandSupport.apiClient;
+import static app.testlens.cli.CommandSupport.filterSuffix;
 import static app.testlens.cli.CommandSupport.isInteractiveTerminal;
 import static app.testlens.cli.CommandSupport.resolveRepo;
 import static app.testlens.cli.util.Console.clearProgress;
@@ -60,6 +61,21 @@ public class TestCommand implements Callable<Integer> {
     )
     @Nullable
     String query;
+
+    @Option(
+        names = "--branch",
+        description = "Only executions on this branch; PR builds count toward their target branch"
+    )
+    @Nullable
+    String branch;
+
+    @Option(names = { "--task", "--project" }, description = "Only executions for this task/project")
+    @Nullable
+    String workUnit;
+
+    @Option(names = "--job", description = "Only executions of this job, e.g. CI / build")
+    @Nullable
+    String job;
 
     @Option(
         names = "--repo",
@@ -158,13 +174,14 @@ public class TestCommand implements Callable<Integer> {
             var test = api.getTest(owner, repoName, testId);
             clearProgress(out, ansi);
             var info = TestInfo.of(test);
+            var loader = new ExecutionsLoader(api, owner, repoName, testId, branch, workUnit, job);
             if (tui) {
-                TestExecutionsTui.run(info, new ExecutionsLoader(api, owner, repoName, testId));
+                TestExecutionsTui.run(info, loader, branch, workUnit, job);
             } else {
                 showProgress(out, ansi, "Fetching executions...");
-                var executions = new ExecutionsLoader(api, owner, repoName, testId).first();
+                var executions = loader.first();
                 clearProgress(out, ansi);
-                printTest(out, ansi, info, executions.executions());
+                printTest(out, ansi, info, branch, workUnit, job, executions.executions());
             }
             return 0;
         } catch (ApiException e) {
@@ -210,9 +227,15 @@ public class TestCommand implements Callable<Integer> {
         java.io.PrintWriter out,
         Ansi ansi,
         TestInfo test,
+        @Nullable String branch,
+        @Nullable String workUnit,
+        @Nullable String job,
         List<TestExecutionResponse> executions
     ) {
-        out.println(styled(ansi, test.displayName(), Style.bold) + " (test " + test.id() + ")");
+        out.println(
+            styled(ansi, test.displayName(), Style.bold) + " (test " + test.id() + ")"
+                + filterSuffix(branch, workUnit, job)
+        );
         out.println("   " + styled(ansi, test.uniqueId(), Style.faint));
         out.println("   " + styled(ansi, "newest first, successful runs are not shown", Style.faint));
         if (executions.isEmpty()) {
@@ -226,8 +249,8 @@ public class TestCommand implements Callable<Integer> {
     }
 
     /**
-     * Prints a numbered execution with its diagnostics; {@code withWhere} adds the work unit, sha and branch, which
-     * the caller may already have printed.
+     * Prints a numbered execution with its diagnostics; {@code withWhere} adds the job, work unit, sha and branch,
+     * which the caller may already have printed.
      */
     static void printExecution(
         java.io.PrintWriter out,
@@ -250,10 +273,12 @@ public class TestCommand implements Callable<Integer> {
                 + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()) + seeJob + ")"
         );
         if (withWhere) {
+            var job = execution.getJob();
             out.println(
                 detailIndent + styled(
                     ansi,
-                    execution.getWorkUnit() + " · " + sha(execution) + " @ " + execution.getBranch(),
+                    (job == null ? "" : job + " > ") + execution.getWorkUnit() + " · " + sha(execution) + " @ "
+                        + execution.getBranch(),
                     Style.faint
                 )
             );

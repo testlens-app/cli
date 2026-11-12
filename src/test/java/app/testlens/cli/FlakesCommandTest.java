@@ -47,7 +47,8 @@ class FlakesCommandTest {
         wireMock.stubFor(
             get(urlPathEqualTo(FLAKES_PATH))
                 .withQueryParam("branch", equalTo("main"))
-                .willReturn(json(List.of(flake("0123456789", ":core:test"))))
+                .withQueryParam("job", equalTo("CI / build"))
+                .willReturn(json(List.of(flake("0123456789", ":core:test").job("CI / build"))))
         );
 
         var result = run(
@@ -55,6 +56,8 @@ class FlakesCommandTest {
             "1729",
             "--branch",
             "main",
+            "--job",
+            "CI / build",
             "--repo",
             REPO,
             "--token",
@@ -66,11 +69,11 @@ class FlakesCommandTest {
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout().lines()).containsExactly(
-            "NetworkTests > connects() (test 1729) · branch main",
+            "NetworkTests > connects() (test 1729) · branch main · job CI / build",
             "   [engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]",
             "   newest flake first, executions in chronological order",
             "",
-            "  1. 0123456 @ main · :core:test",
+            "  1. 0123456 @ main · :core:test · CI / build",
             "      1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
             "         java.lang.AssertionError: boom",
             "      2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s))"

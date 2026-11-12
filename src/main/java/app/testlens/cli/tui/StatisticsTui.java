@@ -63,10 +63,12 @@ public final class StatisticsTui {
     ) {
         try {
             var test = of(statistic);
-            var flakes = FlakesCommand
-                .fetchFlakes(testsApi, owner, repo, test.id(), statistic.getBranch(), statistic.getWorkUnit());
+            var branch = statistic.getBranch();
+            var workUnit = statistic.getWorkUnit();
+            var job = statistic.getJob();
+            var flakes = FlakesCommand.fetchFlakes(testsApi, owner, repo, test.id(), branch, workUnit, job);
             var controller = new FlakesController(focusManager, test, flakes);
-            router.push(new FlakesView(controller, test, statistic.getBranch(), statistic.getWorkUnit()));
+            router.push(new FlakesView(controller, test, branch, workUnit, job));
         } catch (ApiException e) {
             listController.openFailed(errorMessage(e));
         }

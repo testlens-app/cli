@@ -20,11 +20,13 @@ public final class FlakesTui {
         TestInfo test,
         @Nullable String branch,
         @Nullable String workUnit,
+        @Nullable String job,
         List<FlakeResponse> flakes
     ) throws Exception {
         try (var runner = ToolkitRunner.create()) {
             var controller = new FlakesController(runner.focusManager(), test, flakes);
-            var router = new ScreenRouter(new FlakesView(controller, test, branch, workUnit), runner.focusManager());
+            var router =
+                new ScreenRouter(new FlakesView(controller, test, branch, workUnit, job), runner.focusManager());
             // the modal "no flakes" dialog consumes all keys before unfocused-element routing,
             // so back/quit has to be handled globally, ahead of the dialog
             runner.eventRouter().addGlobalHandler(event -> {

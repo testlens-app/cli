@@ -63,10 +63,10 @@ class StatisticsCommandTest {
         assertThat(result.stdout().lines()).containsExactly(
             "Flakiness ranking · branch main",
             "  1. 🔴 NetworkTests > connects()",
-            "      work unit :core:test · flaky 20/200 (10%) · failed 1 · test 1729",
+            "      work unit :core:test · job CI / build · flaky 20/200 (10%) · failed 1 · test 1729",
             "",
             "  2. 🟡 CalculatorTests > adds()",
-            "      work unit :core:test · flaky 4/200 (2%) · failed 2 · test 1703"
+            "      work unit :core:test · job CI / build · flaky 4/200 (2%) · failed 2 · test 1703"
         );
     }
 
@@ -169,6 +169,7 @@ class StatisticsCommandTest {
             .uniqueId("[engine:junit-jupiter]/[class:" + className + "]/[method:" + method + "]")
             .displayNames(List.of("JUnit Jupiter", className, method))
             .workUnit(workUnit)
+            .job("CI / build")
             .branch("main")
             .failed(new FailedCount().count(failedCount).total(200L).percentage(1))
             .flaky(

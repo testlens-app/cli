@@ -46,6 +46,13 @@ public final class CommandSupport {
         return apiClient;
     }
 
+    /** Title suffix naming the active filters, e.g. {@code " · branch main · job CI / build"}; empty without. */
+    public static String filterSuffix(@Nullable String branch, @Nullable String workUnit, @Nullable String job) {
+        return (branch == null ? "" : " · branch " + branch)
+            + (workUnit == null ? "" : " · project/task " + workUnit)
+            + (job == null ? "" : " · job " + job);
+    }
+
     /** Display name of a test, skipping the first display name which denotes the test engine. */
     static String testName(List<String> displayNames) {
         return String.join(" > ", displayNames.subList(Math.min(1, displayNames.size()), displayNames.size()));

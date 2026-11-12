@@ -93,7 +93,7 @@ class TestCommandTest {
             "   [engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]",
             "   newest first, successful runs are not shown",
             "    1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
-            "       :core:test · 0123456 @ main",
+            "       CI / build > :core:test · 0123456 @ main",
             "       - foo bar",
             "       + foo baz",
             "       java.lang.AssertionError: boom",
@@ -112,6 +112,43 @@ class TestCommandTest {
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).doesNotContain("see ").contains("    1. FAILED (");
+    }
+
+    @Test
+    void filters_executions_by_branch_task_and_job() {
+        wireMock.stubFor(get(TEST_PATH).willReturn(json(testResponse())));
+        wireMock.stubFor(
+            get(urlPathEqualTo(EXECUTIONS_PATH))
+                .withQueryParam("branch", equalTo("main"))
+                .withQueryParam("workUnit", equalTo(":core:test"))
+                .withQueryParam("job", equalTo("CI / build"))
+                .willReturn(json(List.of(failedExecution(false))))
+        );
+
+        var result = run(
+            "test",
+            "1729",
+            "--branch",
+            "main",
+            "--task",
+            ":core:test",
+            "--job",
+            "CI / build",
+            "--repo",
+            REPO,
+            "--token",
+            "good",
+            "--mode=cli",
+            "--base-url",
+            wireMock.baseUrl()
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout().lines())
+            .first()
+            .isEqualTo(
+                "NetworkTests > connects() (test 1729) · branch main · project/task :core:test · job CI / build"
+            );
     }
 
     @Test
@@ -138,7 +175,7 @@ class TestCommandTest {
             .contains("<faint>[engine:junit-jupiter]/[class:NetworkTests]/[method:connects()]<reset>");
         assertThat(readable).contains("<red>FAILED<reset>");
         assertThat(readable).contains("<red>- <reset><red>foo <reset><red><reverse><bold>bar<reset>");
-        assertThat(readable).contains("<faint>:core:test · 0123456 @ main<reset>");
+        assertThat(readable).contains("<faint>CI / build > :core:test · 0123456 @ main<reset>");
         assertThat(readable).contains("<link " + JOB_URL + "><underline>job<reset></link>");
     }
 
@@ -260,6 +297,7 @@ class TestCommandTest {
             .sha("0123456789abcdef0123456789abcdef01234567")
             .branch("main")
             .workUnit(":core:test")
+            .job("CI / build")
             .comparisonFailure(new ComparisonFailure().expected("foo bar").actual("foo baz"))
             .stackTrace("java.lang.AssertionError: boom\n\tat Foo.bar(Foo.java:1)");
         return withJobUrl ? execution.htmlUrl(JOB_URL) : execution;

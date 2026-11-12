@@ -50,7 +50,7 @@ class ExecutionsLoaderTest {
                 .willReturn(aJsonPage(List.of(execution(Outcome.ABORTED)), null))
         );
 
-        var loader = new ExecutionsLoader(new TestsApi(apiClient()), "some-org", "some-repo", 1729L);
+        var loader = new ExecutionsLoader(new TestsApi(apiClient()), "some-org", "some-repo", 1729L, null, null, null);
 
         var first = loader.first();
         assertThat(first.executions()).hasSize(1);

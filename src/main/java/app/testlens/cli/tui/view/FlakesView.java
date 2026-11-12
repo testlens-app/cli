@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui.view;
 
+import static app.testlens.cli.CommandSupport.filterSuffix;
 import static app.testlens.cli.tui.controller.FlakesController.VIEW_ID;
 import static app.testlens.cli.tui.controller.FlakesController.abbreviatedSha;
 import static app.testlens.cli.tui.view.PrTestsTableView.colorFor;
@@ -12,6 +13,7 @@ import static dev.tamboui.toolkit.Toolkit.dialog;
 import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.table;
 import static dev.tamboui.toolkit.Toolkit.text;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.FlakeResponse;
@@ -52,13 +54,14 @@ public final class FlakesView implements ScreenRouter.Screen {
     public static final int MAX_VISIBLE_FLAKES = 10;
 
     private static final String OUTCOME = "Outcome";
+    private static final String JOB_LABEL = "Job";
     private static final String WORK_UNIT_LABEL = "Project/Task";
     private static final String BRANCH_LABEL = "Branch";
     private static final String SHA_LABEL = "sha";
     private static final String START_LABEL = "Start";
     private static final String NO_FLAKES_MESSAGE = "No flakes of this test in the last 30 days.";
     private static final int COLUMN_SPACING = 3;
-    private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 4 * COLUMN_SPACING;
+    private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 5 * COLUMN_SPACING;
     private static final int TABLE_CHROME_HEIGHT = 3;
     private static final int SHA_WIDTH = 7;
     private static final int MAX_COLUMN_WIDTH = 32;
@@ -73,10 +76,15 @@ public final class FlakesView implements ScreenRouter.Screen {
     private final FlakeDetailsView details;
     private int tableWidth = -1;
 
-    public FlakesView(FlakesController controller, TestInfo test, @Nullable String branch, @Nullable String workUnit) {
+    public FlakesView(
+        FlakesController controller,
+        TestInfo test,
+        @Nullable String branch,
+        @Nullable String workUnit,
+        @Nullable String job
+    ) {
         this.controller = controller;
-        this.title = test.displayName() + " · test " + test.id() + (branch == null ? "" : " · branch " + branch)
-            + (workUnit == null ? "" : " · task/project " + workUnit);
+        this.title = test.displayName() + " · test " + test.id() + filterSuffix(branch, workUnit, job);
         this.details = new FlakeDetailsView(controller.detailsController(), controller.model());
         this.table = table()
             .id(VIEW_ID)
@@ -87,6 +95,7 @@ public final class FlakesView implements ScreenRouter.Screen {
             .header(
                 Row.from(
                     Cell.from(OUTCOME),
+                    Cell.from(JOB_LABEL),
                     Cell.from(WORK_UNIT_LABEL),
                     Cell.from(BRANCH_LABEL),
                     Cell.from(SHA_LABEL),
@@ -169,7 +178,9 @@ public final class FlakesView implements ScreenRouter.Screen {
             CharWidth.of(OUTCOME),
             controller.tests().stream().mapToInt(test -> CharWidth.of(outcomeLabel(outcome(test)))).max().orElse(0)
         );
-        var available = Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - SHA_WIDTH - START_WIDTH);
+        var jobWidth = contentWidth(JOB_LABEL, flake -> requireNonNullElse(flake.getJob(), ""));
+        var available =
+            Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - jobWidth - SHA_WIDTH - START_WIDTH);
         var workUnitWidth = contentWidth(WORK_UNIT_LABEL, FlakeResponse::getWorkUnit);
         var branchWidth = contentWidth(BRANCH_LABEL, FlakeResponse::getBranch);
         var overflow = workUnitWidth + branchWidth - available;
@@ -186,6 +197,7 @@ public final class FlakesView implements ScreenRouter.Screen {
                         i -> flakeRow(
                             controller.flakes().get(i),
                             controller.tests().get(i),
+                            jobWidth,
                             finalWorkUnitWidth,
                             finalBranchWidth
                         )
@@ -194,6 +206,7 @@ public final class FlakesView implements ScreenRouter.Screen {
             )
             .widths(
                 Constraint.length(outcomeWidth),
+                Constraint.length(jobWidth),
                 Constraint.length(finalWorkUnitWidth),
                 Constraint.length(finalBranchWidth),
                 Constraint.length(SHA_WIDTH),
@@ -214,12 +227,19 @@ public final class FlakesView implements ScreenRouter.Screen {
         return AggregatedOutcome.from(test.getExecutions());
     }
 
-    private static Row flakeRow(FlakeResponse flake, ExecutedTest test, int workUnitWidth, int branchWidth) {
+    private static Row flakeRow(
+        FlakeResponse flake,
+        ExecutedTest test,
+        int jobWidth,
+        int workUnitWidth,
+        int branchWidth
+    ) {
         var outcome = outcome(test);
         // executions are in chronological order, so the first one started the flake
         var start = test.getExecutions().getFirst().getStartTime();
         return Row.from(
             Cell.from(Span.styled(outcomeLabel(outcome), Style.EMPTY.fg(colorFor(outcome)))),
+            Cell.from(truncate(requireNonNullElse(flake.getJob(), ""), jobWidth, CharWidth.TruncatePosition.MIDDLE)),
             Cell.from(truncate(flake.getWorkUnit(), workUnitWidth, CharWidth.TruncatePosition.MIDDLE)),
             Cell.from(truncate(flake.getBranch(), branchWidth, CharWidth.TruncatePosition.MIDDLE)),
             Cell.from(Span.styled(abbreviatedSha(flake.getSha()), Style.EMPTY.dim())),

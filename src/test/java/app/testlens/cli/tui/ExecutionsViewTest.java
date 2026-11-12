@@ -44,18 +44,32 @@ class ExecutionsViewTest {
     void shows_executions_table_and_details_of_the_newest_execution() {
         var view = view(
             TEST,
-            execution(TestExecutionResponse.OutcomeEnum.FAILED, ":core:test"),
+            execution(TestExecutionResponse.OutcomeEnum.FAILED, ":core:test").job("CI / build"),
             execution(TestExecutionResponse.OutcomeEnum.SUCCESSFUL, ":core:testJava21")
         );
 
         assertThat(render(view)).contains(
             "NetworkTests > connects() · test 1729",
             "Executions",
+            "Job",
             "FAILED",
+            "CI / build",
             ":core:test",
             ":core:testJava21",
-            "Exec:  #1/2, 2026-01-02 03:04:05Z - 03:04:07Z (2s)"
+            "Exec:  #1/2, 2026-01-02 03:04:05Z - 03:04:07Z (2s)",
+            "Where: CI / build > :core:test"
         );
+    }
+
+    @Test
+    void shows_the_active_filters_in_the_title() {
+        var controller = new ExecutionsController(
+            new FocusManager(),
+            new ExecutionsModel(TEST, List.of(execution(TestExecutionResponse.OutcomeEnum.FAILED, ":core:test")), false)
+        );
+
+        assertThat(render(new ExecutionsView(controller, controller.model(), "main", null, "CI / build")))
+            .contains("NetworkTests > connects() · test 1729 · branch main · job CI / build");
     }
 
     @Test
@@ -92,7 +106,7 @@ class ExecutionsViewTest {
                 false
             )
         );
-        var view = new ExecutionsView(controller, controller.model());
+        var view = new ExecutionsView(controller, controller.model(), null, null, null);
         focusManager.setFocus(ExecutionsController.EXECUTIONS_ID);
 
         controller.handleTableKey(dev.tamboui.tui.event.KeyEvent.ofChar('j'));
@@ -124,7 +138,8 @@ class ExecutionsViewTest {
         assertThat(controller.model().executions()).hasSize(2);
         assertThat(model.snapshot().executionIndex()).isEqualTo(1);
         assertThat(model.hasMoreExecutions()).isFalse();
-        assertThat(render(new ExecutionsView(controller, model))).contains("first").contains("second");
+        assertThat(render(new ExecutionsView(controller, model, null, null, null))).contains("first")
+            .contains("second");
     }
 
     private static ExecutionsView view(TestInfo test, TestExecutionResponse... executions) {
@@ -132,7 +147,7 @@ class ExecutionsViewTest {
             new dev.tamboui.toolkit.focus.FocusManager(),
             new ExecutionsModel(test, List.of(executions), false)
         );
-        return new ExecutionsView(controller, controller.model());
+        return new ExecutionsView(controller, controller.model(), null, null, null);
     }
 
     private static TestExecutionResponse execution(TestExecutionResponse.OutcomeEnum outcome, String workUnit) {

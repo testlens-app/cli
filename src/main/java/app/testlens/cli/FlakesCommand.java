@@ -2,6 +2,7 @@
 package app.testlens.cli;
 
 import static app.testlens.cli.CommandSupport.apiClient;
+import static app.testlens.cli.CommandSupport.filterSuffix;
 import static app.testlens.cli.CommandSupport.isInteractiveTerminal;
 import static app.testlens.cli.CommandSupport.resolveRepo;
 import static app.testlens.cli.util.Console.clearProgress;
@@ -58,6 +59,10 @@ public class FlakesCommand implements Callable<Integer> {
     @Nullable
     String workUnit;
 
+    @Option(names = "--job", description = "Only flakes of this job, e.g. CI / build")
+    @Nullable
+    String job;
+
     @Option(
         names = "--repo",
         description = "Repository as owner/repo (defaults to the GitHub remote 'origin' of the current directory)"
@@ -112,12 +117,12 @@ public class FlakesCommand implements Callable<Integer> {
             var test = TestInfo.of(api.getTest(owner, repoName, id));
             clearProgress(out, ansi);
             showProgress(out, ansi, "Fetching flakes...");
-            var flakes = fetchFlakes(api, owner, repoName, id, branch, workUnit);
+            var flakes = fetchFlakes(api, owner, repoName, id, branch, workUnit, job);
             clearProgress(out, ansi);
             if (tui) {
-                FlakesTui.run(test, branch, workUnit, flakes);
+                FlakesTui.run(test, branch, workUnit, job, flakes);
             } else {
-                printFlakes(out, ansi, test, branch, workUnit, flakes);
+                printFlakes(out, ansi, test, branch, workUnit, job, flakes);
             }
             return 0;
         } catch (ApiException e) {
@@ -133,12 +138,13 @@ public class FlakesCommand implements Callable<Integer> {
         String repo,
         long testId,
         @Nullable String branch,
-        @Nullable String workUnit
+        @Nullable String workUnit,
+        @Nullable String job
     ) throws ApiException {
         var flakes = new ArrayList<FlakeResponse>();
         for (int page = 1;; page++) {
             var response =
-                api.getTestFlakesWithHttpInfo(owner, repo, testId, null, branch, workUnit, page, null, Map.of());
+                api.getTestFlakesWithHttpInfo(owner, repo, testId, null, branch, workUnit, job, page, null, Map.of());
             if (response.getData() != null) {
                 flakes.addAll(response.getData());
             }
@@ -154,12 +160,12 @@ public class FlakesCommand implements Callable<Integer> {
         TestInfo test,
         @Nullable String branch,
         @Nullable String workUnit,
+        @Nullable String job,
         List<FlakeResponse> flakes
     ) {
         out.println(
             styled(ansi, test.displayName(), Style.bold) + " (test " + test.id() + ")"
-                + (branch == null ? "" : " · branch " + branch)
-                + (workUnit == null ? "" : " · project/task " + workUnit)
+                + filterSuffix(branch, workUnit, job)
         );
         out.println("   " + styled(ansi, test.uniqueId(), Style.faint));
         out.println("   " + styled(ansi, "newest flake first, executions in chronological order", Style.faint));
@@ -176,7 +182,7 @@ public class FlakesCommand implements Callable<Integer> {
                     ansi,
                     FlakesController.abbreviatedSha(flake.getSha()) + " @ " + flake.getBranch(),
                     Style.bold
-                ) + " · " + flake.getWorkUnit()
+                ) + " · " + flake.getWorkUnit() + (flake.getJob() == null ? "" : " · " + flake.getJob())
             );
             var executions = flake.getExecutions()
                 .stream()

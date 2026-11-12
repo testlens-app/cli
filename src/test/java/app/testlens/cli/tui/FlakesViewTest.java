@@ -42,15 +42,18 @@ class FlakesViewTest {
     @Test
     void shows_flakes_table_and_executions_as_chronological_tabs_with_the_newest_selected() {
         var focusManager = new FocusManager();
-        var controller = new FlakesController(focusManager, TEST, List.of(flake("0123456789", ":core:test")));
+        var controller =
+            new FlakesController(focusManager, TEST, List.of(flake("0123456789", ":core:test").job("CI / build")));
 
-        var screen = render(new FlakesView(controller, TEST, "main", null));
+        var screen = render(new FlakesView(controller, TEST, "main", null, "CI / build"));
 
         assertThat(screen).contains(
-            "NetworkTests > connects() · test 1729 · branch main",
+            "NetworkTests > connects() · test 1729 · branch main · job CI / build",
             "Outcome",
+            "Job",
             "Project/Task",
             "FLAKY",
+            "CI / build",
             ":core:test",
             "0123456",
             "2026-01-02 03:04",
@@ -71,7 +74,7 @@ class FlakesViewTest {
             TEST,
             List.of(flake("1111111111", ":first"), flake("2222222222", ":second"))
         );
-        var view = new FlakesView(controller, TEST, null, null);
+        var view = new FlakesView(controller, TEST, null, null, null);
         focusManager.setFocus(FlakesController.VIEW_ID);
 
         controller.handleKey(KeyEvent.ofChar('j'));
@@ -85,7 +88,7 @@ class FlakesViewTest {
     void shows_a_dialog_without_flakes() {
         var controller = new FlakesController(new FocusManager(), TEST, List.of());
 
-        assertThat(render(new FlakesView(controller, TEST, null, null)))
+        assertThat(render(new FlakesView(controller, TEST, null, null, null)))
             .contains("No flakes of this test in the last 30 days.");
     }
 

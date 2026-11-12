@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui.view;
 
+import static app.testlens.cli.CommandSupport.filterSuffix;
 import static app.testlens.cli.tui.controller.ExecutionsController.EXECUTIONS_ID;
 import static app.testlens.cli.tui.view.PrTuiUtils.outcomeColor;
 import static app.testlens.cli.tui.view.PrTuiUtils.truncate;
@@ -13,6 +14,7 @@ import static dev.tamboui.toolkit.Toolkit.richTextArea;
 import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.table;
 import static dev.tamboui.toolkit.Toolkit.text;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.tui.ScreenRouter;
@@ -57,13 +59,14 @@ public final class ExecutionsView implements ScreenRouter.Screen {
     public static final int MAX_VISIBLE_EXECUTIONS = 10;
 
     private static final String OUTCOME = "Outcome";
+    private static final String JOB_LABEL = "Job";
     private static final String WORK_UNIT_LABEL = "Project/Task";
     private static final String BRANCH_LABEL = "Branch";
     private static final String SHA_LABEL = "sha";
     private static final String START_LABEL = "Start";
     private static final String NO_EXECUTIONS_MESSAGE = "No failed executions of this test in the last 30 days.";
     private static final int COLUMN_SPACING = 3;
-    private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 4 * COLUMN_SPACING;
+    private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 5 * COLUMN_SPACING;
     private static final int TABLE_CHROME_HEIGHT = 3;
     private static final int DETAILS_LABEL_WIDTH = "Where: ".length();
     private static final int DETAILS_HEADER_HEIGHT = 5;
@@ -76,15 +79,23 @@ public final class ExecutionsView implements ScreenRouter.Screen {
 
     private final ExecutionsController controller;
     private final ExecutionsModel model;
+    private final String titleSuffix;
     private final RichTextAreaElement detailsArea;
     private final TableElement table;
     private int tableWidth = -1;
     private int tableRows = -1;
     private ExecutionsModel.@Nullable Snapshot lastSnapshot;
 
-    public ExecutionsView(ExecutionsController controller, ExecutionsModel model) {
+    public ExecutionsView(
+        ExecutionsController controller,
+        ExecutionsModel model,
+        @Nullable String branch,
+        @Nullable String workUnit,
+        @Nullable String job
+    ) {
         this.controller = controller;
         this.model = model;
+        this.titleSuffix = filterSuffix(branch, workUnit, job);
         this.detailsArea = richTextArea()
             .id(ExecutionsController.DETAILS_ID)
             .wrapCharacter()
@@ -121,7 +132,7 @@ public final class ExecutionsView implements ScreenRouter.Screen {
     }
 
     private String title() {
-        return model.test().displayName() + " · test " + model.test().id();
+        return model.test().displayName() + " · test " + model.test().id() + titleSuffix;
     }
 
     private Element footer() {
@@ -142,6 +153,7 @@ public final class ExecutionsView implements ScreenRouter.Screen {
             .header(
                 Row.from(
                     Cell.from(OUTCOME),
+                    Cell.from(JOB_LABEL),
                     Cell.from(WORK_UNIT_LABEL),
                     Cell.from(BRANCH_LABEL),
                     Cell.from(SHA_LABEL),
@@ -197,7 +209,9 @@ public final class ExecutionsView implements ScreenRouter.Screen {
         tableRows = model.executions().size();
         var executions = model.executions();
         var outcomeWidth = outcomeWidth(executions);
-        var available = Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - SHA_WIDTH - START_WIDTH);
+        var jobWidth = contentWidth(JOB_LABEL, executions, execution -> requireNonNullElse(execution.getJob(), ""));
+        var available =
+            Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - jobWidth - SHA_WIDTH - START_WIDTH);
         var workUnitWidth = contentWidth(WORK_UNIT_LABEL, executions, TestExecutionResponse::getWorkUnit);
         var branchWidth = contentWidth(BRANCH_LABEL, executions, TestExecutionResponse::getBranch);
         var overflow = workUnitWidth + branchWidth - available;
@@ -211,11 +225,12 @@ public final class ExecutionsView implements ScreenRouter.Screen {
             .rows(
                 executions
                     .stream()
-                    .map(execution -> executionRow(execution, finalWorkUnitWidth, finalBranchWidth))
+                    .map(execution -> executionRow(execution, jobWidth, finalWorkUnitWidth, finalBranchWidth))
                     .toList()
             )
             .widths(
                 Constraint.length(outcomeWidth),
+                Constraint.length(jobWidth),
                 Constraint.length(finalWorkUnitWidth),
                 Constraint.length(finalBranchWidth),
                 Constraint.length(SHA_WIDTH),
@@ -246,10 +261,18 @@ public final class ExecutionsView implements ScreenRouter.Screen {
         return Math.min(Math.max(CharWidth.of(header), contentWidth), MAX_COLUMN_WIDTH);
     }
 
-    private static Row executionRow(TestExecutionResponse execution, int workUnitWidth, int branchWidth) {
+    private static Row executionRow(
+        TestExecutionResponse execution,
+        int jobWidth,
+        int workUnitWidth,
+        int branchWidth
+    ) {
         var sha = execution.getSha();
         return Row.from(
             Cell.from(Span.styled(execution.getOutcome().name(), Style.EMPTY.fg(outcomeColor(execution.getOutcome())))),
+            Cell.from(
+                truncate(requireNonNullElse(execution.getJob(), ""), jobWidth, CharWidth.TruncatePosition.MIDDLE)
+            ),
             Cell.from(truncate(execution.getWorkUnit(), workUnitWidth, CharWidth.TruncatePosition.MIDDLE)),
             Cell.from(truncate(execution.getBranch(), branchWidth, CharWidth.TruncatePosition.MIDDLE)),
             Cell.from(Span.styled(abbreviatedSha(sha), Style.EMPTY.dim())),
@@ -312,7 +335,8 @@ public final class ExecutionsView implements ScreenRouter.Screen {
                 )
             )
         );
-        lines.add(valueLine("Where: ", execution.getWorkUnit(), valueWidth));
+        var job = execution.getJob();
+        lines.add(valueLine("Where: ", (job == null ? "" : job + " > ") + execution.getWorkUnit(), valueWidth));
         lines.add(valueLine("Ref:   ", execution.getBranch(), valueWidth));
         lines.add(valueLine("Sha:   ", execution.getSha(), valueWidth));
         var htmlUrl = execution.getHtmlUrl();

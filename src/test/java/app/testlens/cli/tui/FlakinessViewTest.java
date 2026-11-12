@@ -46,6 +46,8 @@ class FlakinessViewTest {
         assertThat(render(view)).contains(
             "Flakiness ranking · branch main",
             "Flakiest tests",
+            "Job",
+            "CI / build",
             "connects()",
             "adds()"
         );
@@ -110,6 +112,7 @@ class FlakinessViewTest {
             .uniqueId("[engine:junit-jupiter]/[class:" + className + "]/[method:" + method + "]")
             .displayNames(List.of("JUnit Jupiter", className, method))
             .workUnit(workUnit)
+            .job("CI / build")
             .branch("main")
             .failed(new FailedCount().count(1L).total(200L).percentage(1))
             .flaky(new FlakyCount().count(flakyCount).total(200L).percentage(percentage).severity(severity))

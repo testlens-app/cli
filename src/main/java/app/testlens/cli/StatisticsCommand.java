@@ -168,7 +168,8 @@ public class StatisticsCommand {
     private static String metaLine(FlakinessStatisticResponse statistic) {
         var failed = statistic.getFailed();
         var flaky = statistic.getFlaky();
-        return "work unit " + statistic.getWorkUnit() + " · flaky " + flaky.getCount() + "/" + flaky.getTotal()
+        return "work unit " + statistic.getWorkUnit() + " · job " + statistic.getJob() + " · flaky " + flaky.getCount()
+            + "/" + flaky.getTotal()
             + " (" + flaky.getPercentage() + "%) · failed " + failed.getCount() + " · test " + testId(statistic);
     }
 

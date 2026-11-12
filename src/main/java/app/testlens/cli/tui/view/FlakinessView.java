@@ -48,9 +48,10 @@ public final class FlakinessView implements ScreenRouter.Screen {
     private static final String FLAKY_HEADER = "Flaky";
     private static final String FAILED_HEADER = "Failed";
     private static final String TEST_HEADER = "Test";
+    private static final String JOB_HEADER = "Job";
     private static final String WORK_UNIT_HEADER = "Project/Task";
     private static final int COLUMN_SPACING = 3;
-    private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 4 * COLUMN_SPACING;
+    private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 5 * COLUMN_SPACING;
     private static final int TABLE_CHROME_HEIGHT = 3;
 
     private final FlakinessTableController controller;
@@ -74,6 +75,7 @@ public final class FlakinessView implements ScreenRouter.Screen {
                         Cell.from(FLAKY_HEADER),
                         Cell.from(FAILED_HEADER),
                         Cell.from(TEST_HEADER),
+                        Cell.from(JOB_HEADER),
                         Cell.from(WORK_UNIT_HEADER)
                     )
             )
@@ -158,21 +160,22 @@ public final class FlakinessView implements ScreenRouter.Screen {
         var failedWidth =
             maxColumnWidth(FAILED_HEADER, statistics, statistic -> failedLabel(statistic.getFailed().getCount()));
         var available = Math.max(0, width - TABLE_DECORATION_WIDTH - severityWidth - flakyWidth - failedWidth);
-        // the work unit is de-emphasized to the last column and capped, so the test name keeps the leftovers
-        var workUnitContentWidth =
-            maxColumnWidth(WORK_UNIT_HEADER, statistics, FlakinessStatisticResponse::getWorkUnit);
-        var workUnitWidth = Math
-            .min(
-                Math.max(workUnitContentWidth, WORK_UNIT_HEADER.length()),
-                Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available))
-            );
-        var testWidth = Math.max(1, available - workUnitWidth);
+        // job and work unit are de-emphasized to the last columns and capped, so the test name keeps the leftovers
+        var jobWidth = Math.min(
+            maxColumnWidth(JOB_HEADER, statistics, FlakinessStatisticResponse::getJob),
+            Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available))
+        );
+        var workUnitWidth = Math.min(
+            maxColumnWidth(WORK_UNIT_HEADER, statistics, FlakinessStatisticResponse::getWorkUnit),
+            Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available - jobWidth))
+        );
+        var testWidth = Math.max(1, available - jobWidth - workUnitWidth);
 
         var finalWorkUnitWidth = workUnitWidth;
         table
             .rows(
                 statistics.stream()
-                    .map(statistic -> statisticRow(statistic, finalWorkUnitWidth, testWidth))
+                    .map(statistic -> statisticRow(statistic, jobWidth, finalWorkUnitWidth, testWidth))
                     .toList()
             )
             .widths(
@@ -180,6 +183,7 @@ public final class FlakinessView implements ScreenRouter.Screen {
                 Constraint.length(flakyWidth),
                 Constraint.length(failedWidth),
                 Constraint.fill(),
+                Constraint.length(jobWidth),
                 Constraint.length(finalWorkUnitWidth)
             );
     }
@@ -201,6 +205,7 @@ public final class FlakinessView implements ScreenRouter.Screen {
 
     private static Row statisticRow(
         FlakinessStatisticResponse statistic,
+        int jobWidth,
         int workUnitWidth,
         int testWidth
     ) {
@@ -210,8 +215,14 @@ public final class FlakinessView implements ScreenRouter.Screen {
             Cell.from(flakyLabel(statistic)),
             Cell.from(failedLabel(statistic.getFailed().getCount())),
             Cell.from(abbreviatedTestName(statistic.getDisplayNames(), testWidth)),
-            // de-emphasized: the work unit differentiates the rows of one test (e.g. a JDK matrix) but is the
+            // de-emphasized: job and work unit differentiate the rows of one test (e.g. a JDK matrix) but are the
             // least relevant part of the ranking scan
+            Cell.from(
+                Span.styled(
+                    truncate(statistic.getJob(), jobWidth, CharWidth.TruncatePosition.MIDDLE),
+                    Style.EMPTY.dim()
+                )
+            ),
             Cell.from(
                 Span.styled(
                     truncate(statistic.getWorkUnit(), workUnitWidth, CharWidth.TruncatePosition.MIDDLE),
