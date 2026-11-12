@@ -8,6 +8,7 @@ import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.tui.controller.PrDetailsController;
 import app.testlens.cli.tui.model.PrTuiModel;
+import app.testlens.cli.util.Console;
 import app.testlens.cli.util.TimeFormat;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
@@ -20,8 +21,9 @@ import dev.tamboui.text.Text;
 import dev.tamboui.toolkit.element.Element;
 import dev.tamboui.toolkit.element.RenderContext;
 import dev.tamboui.toolkit.element.Size;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.function.IntFunction;
+import org.jspecify.annotations.Nullable;
 
 /** The details pane of the PR screen: the shared execution tabs with the test, its location, time and job. */
 public final class PrDetailsView {
@@ -35,10 +37,13 @@ public final class PrDetailsView {
         this.pane = new ExecutionTabsPane(
             controller,
             model,
-            (test, execution) -> widthAware(
-                Constraint.length(DETAILS_HEADER_HEIGHT),
-                width -> richText(detailsHeader(test, execution, width)).ellipsis()
-            )
+            (test, execution) -> {
+                var environment = Console.environment(execution.getBuildEnvironment());
+                return widthAware(
+                    Constraint.length(DETAILS_HEADER_HEIGHT + (environment == null ? 0 : 1)),
+                    width -> richText(detailsHeader(test, execution, environment, width)).ellipsis()
+                );
+            }
         );
     }
 
@@ -50,24 +55,31 @@ public final class PrDetailsView {
         return pane.render();
     }
 
-    private static Text detailsHeader(ExecutedTest test, Execution execution, int width) {
-        return Text.from(
-            List.of(
-                Line.from(
-                    Span.raw("Test:  "),
-                    Span.raw(abbreviatedTestName(test.getDisplayNames(), width - DETAILS_LABEL_WIDTH))
-                ),
-                Line.from(Span.raw("Where: "), Span.raw(test.getJob() + " > " + test.getWorkUnit())),
-                Line.from(
-                    Span.raw("Time:  "),
-                    Span.raw(TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()))
-                ),
-                Line.from(
-                    Span.raw("Job:   "),
-                    Span.styled(execution.getHtmlUrl(), Style.EMPTY.underlined().hyperlink(execution.getHtmlUrl()))
-                )
+    private static Text detailsHeader(ExecutedTest test, Execution execution, @Nullable String environment, int width) {
+        var lines = new ArrayList<Line>();
+        lines.add(
+            Line.from(
+                Span.raw("Test:  "),
+                Span.raw(abbreviatedTestName(test.getDisplayNames(), width - DETAILS_LABEL_WIDTH))
             )
         );
+        lines.add(Line.from(Span.raw("Where: "), Span.raw(test.getJob() + " > " + test.getWorkUnit())));
+        lines.add(
+            Line.from(
+                Span.raw("Time:  "),
+                Span.raw(TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()))
+            )
+        );
+        lines.add(
+            Line.from(
+                Span.raw("Job:   "),
+                Span.styled(execution.getHtmlUrl(), Style.EMPTY.underlined().hyperlink(execution.getHtmlUrl()))
+            )
+        );
+        if (environment != null) {
+            lines.add(Line.from(Span.raw("Env:   "), Span.raw(environment)));
+        }
+        return Text.from(lines);
     }
 
     private static Element widthAware(Constraint constraint, IntFunction<Element> factory) {

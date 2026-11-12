@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.client.ApiClient;
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.client.model.ComparisonFailure;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
@@ -24,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,6 +42,12 @@ class PrCommandTest {
     private static final String JOB_URL = "https://github.com/some-org/some-repo/actions/runs/1/job/101?pr=42";
 
     private static final OffsetDateTime START_TIME = OffsetDateTime.parse("2026-01-02T03:04:05Z");
+
+    private static final BuildEnvironment ENVIRONMENT = new BuildEnvironment()
+        .osName("Linux")
+        .osVersion("6.8.0-45-generic")
+        .osArch("amd64")
+        .javaVersion("21.0.5");
 
     private static final Pattern OSC8_LINK = Pattern.compile("\u001B]8;;(.*?)\u001B\\\\");
 
@@ -147,6 +155,38 @@ class PrCommandTest {
     }
 
     @Test
+    void prints_the_build_environment_of_executions() {
+        stubPullRequestWithTests("SHA", ENVIRONMENT);
+
+        var result =
+            run("pr", "42", "--repo", "some-org/some-repo", "--token", "good", "--base-url", wireMock.baseUrl());
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout().lines()).containsExactly(
+            "Some PR (#42)",
+            "Head:  SHA",
+            "Tests: 7 executed",
+            "Jobs:  2/3 completed",
+            "",
+            "Commit: SHA",
+            "",
+            "CI / build > :test",
+            "  FooTests > bar()",
+            "    1. FAILED (2026-01-02 03:04:05Z - 03:04:06Z (1s 500ms), see " + JOB_URL + ")",
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5",
+            "       - foo bar",
+            "       + foo baz",
+            "       java.lang.AssertionError: boom",
+            "           at Foo.bar(Foo.java:1)",
+            "       Caused by: java.lang.IllegalStateException: first",
+            "       second",
+            "           ... 1 more",
+            "    2. SKIPPED (2026-01-02 03:04:05Z, see " + JOB_URL + ")",
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5"
+        );
+    }
+
+    @Test
     void shows_tests_of_given_sha() {
         stubPullRequestWithTests("OTHER");
 
@@ -205,6 +245,10 @@ class PrCommandTest {
     }
 
     private static void stubPullRequestWithTests(String testsSha) {
+        stubPullRequestWithTests(testsSha, null);
+    }
+
+    private static void stubPullRequestWithTests(String testsSha, @Nullable BuildEnvironment buildEnvironment) {
         wireMock.stubFor(
             get(PR_PATH)
                 .withHeader("Authorization", equalTo("Bearer good"))
@@ -239,6 +283,7 @@ class PrCommandTest {
                                             .startTime(START_TIME)
                                             .durationMillis(1500L)
                                             .htmlUrl(JOB_URL)
+                                            .buildEnvironment(buildEnvironment)
                                             .comparisonFailure(
                                                 new ComparisonFailure().expected("foo bar").actual("foo baz")
                                             )
@@ -258,6 +303,7 @@ class PrCommandTest {
                                             .startTime(START_TIME)
                                             .durationMillis(null)
                                             .htmlUrl(JOB_URL)
+                                            .buildEnvironment(buildEnvironment)
                                     )
                             )
                     )

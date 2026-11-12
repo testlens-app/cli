@@ -20,6 +20,7 @@ import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.tui.ScreenRouter;
 import app.testlens.cli.tui.controller.ExecutionsController;
 import app.testlens.cli.tui.model.ExecutionsModel;
+import app.testlens.cli.util.Console;
 import app.testlens.cli.util.TimeFormat;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
@@ -307,7 +308,7 @@ public final class ExecutionsView implements ScreenRouter.Screen {
     private Element details() {
         return panel(
             widthAware(
-                Constraint.length(DETAILS_HEADER_HEIGHT),
+                Constraint.length(detailsHeaderHeight()),
                 width -> richText(detailsHeader(width)).ellipsis()
             ),
             detailsArea.fill()
@@ -317,12 +318,24 @@ public final class ExecutionsView implements ScreenRouter.Screen {
             .fill();
     }
 
+    // one line per detail, plus the optional environment line
+    private int detailsHeaderHeight() {
+        var execution = selectedExecution();
+        return DETAILS_HEADER_HEIGHT
+            + (execution != null && Console.environment(execution.getBuildEnvironment()) != null ? 1 : 0);
+    }
+
+    private @Nullable TestExecutionResponse selectedExecution() {
+        var snapshot = model.snapshot();
+        return snapshot.executions().isEmpty() ? null : snapshot.executions().get(snapshot.executionIndex());
+    }
+
     private Text detailsHeader(int width) {
-        if (model.executions().isEmpty()) {
+        var execution = selectedExecution();
+        if (execution == null) {
             return Text.from(List.of(Line.from("")));
         }
         var snapshot = model.snapshot();
-        var execution = snapshot.executions().get(snapshot.executionIndex());
         var valueWidth = Math.max(width - DETAILS_LABEL_WIDTH, 0);
         var lines = new ArrayList<Line>();
         lines.add(
@@ -351,6 +364,10 @@ public final class ExecutionsView implements ScreenRouter.Screen {
                     )
                 )
             );
+        }
+        var environment = Console.environment(execution.getBuildEnvironment());
+        if (environment != null) {
+            lines.add(valueLine("Env:   ", environment, valueWidth));
         }
         return Text.from(lines);
     }

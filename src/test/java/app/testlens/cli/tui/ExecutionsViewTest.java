@@ -4,6 +4,7 @@ package app.testlens.cli.tui;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.ExecutionsLoader;
+import app.testlens.cli.client.model.BuildEnvironment;
 import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.tui.controller.ExecutionsController;
 import app.testlens.cli.tui.model.ExecutionsModel;
@@ -58,7 +59,26 @@ class ExecutionsViewTest {
             ":core:testJava21",
             "Exec:  #1/2, 2026-01-02 03:04:05Z - 03:04:07Z (2s)",
             "Where: CI / build > :core:test"
+        )
+            .doesNotContain("Env:");
+    }
+
+    @Test
+    void shows_the_build_environment_of_the_selected_execution() {
+        var view = view(
+            TEST,
+            execution(TestExecutionResponse.OutcomeEnum.FAILED, ":core:test")
+                .buildEnvironment(
+                    new BuildEnvironment()
+                        .osName("Linux")
+                        .osVersion("6.8.0-45-generic")
+                        .osArch("amd64")
+                        .javaVersion("21.0.5")
+                ),
+            execution(TestExecutionResponse.OutcomeEnum.SUCCESSFUL, ":core:testJava21")
         );
+
+        assertThat(render(view)).contains("Env:   Linux 6.8.0-45-generic · amd64 · Java 21.0.5");
     }
 
     @Test
