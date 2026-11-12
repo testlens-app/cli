@@ -47,7 +47,7 @@ public class TestCommand implements Callable<Integer> {
     @Nullable
     CommandSpec spec;
 
-    @Parameters(index = "0", arity = "0..1", description = "Internal test ID")
+    @Parameters(index = "0", arity = "0..1", description = "Internal test ID, e.g. from testlens statistics flakiness")
     @Nullable
     Long id;
 

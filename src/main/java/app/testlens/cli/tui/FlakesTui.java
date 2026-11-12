@@ -25,17 +25,17 @@ public final class FlakesTui {
     ) throws Exception {
         try (var runner = ToolkitRunner.create()) {
             var controller = new FlakesController(runner.focusManager(), test, flakes);
-            var view = new FlakesView(controller, test, branch, workUnit, job);
+            var router =
+                new ScreenRouter(new FlakesView(controller, test, branch, workUnit, job), runner.focusManager());
             // the modal "no flakes" dialog consumes all keys before unfocused-element routing,
-            // so quit has to be handled globally, ahead of the dialog
+            // so back/quit has to be handled globally, ahead of the dialog
             runner.eventRouter().addGlobalHandler(event -> {
-                if (event instanceof KeyEvent keyEvent && keyEvent.isQuit()) {
-                    runner.quit();
-                    return EventResult.HANDLED;
+                if (event instanceof KeyEvent keyEvent) {
+                    return router.handleBackOrQuit(keyEvent, runner::quit);
                 }
                 return EventResult.UNHANDLED;
             });
-            runner.run(view::render);
+            runner.run(router::render);
         }
     }
 }
