@@ -24,7 +24,12 @@ public class CompletionCommand implements Callable<Integer> {
     @Nullable
     CommandSpec spec;
 
-    @Option(names = { "-s", "--shell" }, required = true, description = "Shell type: ${COMPLETION-CANDIDATES}", defaultValue = "bash")
+    @Option(
+        names = { "-s", "--shell" },
+        required = true,
+        description = "Shell type: ${COMPLETION-CANDIDATES}",
+        defaultValue = "bash"
+    )
     @Nullable
     Shell shell;
 
