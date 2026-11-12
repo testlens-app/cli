@@ -136,7 +136,11 @@ public final class PrDetailsView {
                     Span.raw(abbreviatedTestName(test.getDisplayNames(), width - DETAILS_LABEL_WIDTH))
                 ),
                 Line.from(Span.raw("Where: "), Span.raw(test.getJob() + " > " + test.getWorkUnit())),
-                Line.from(Span.raw("Time:  "), Span.raw(TimeFormat.formatTime(execution))),
+                Line
+                    .from(
+                        Span.raw("Time:  "),
+                        Span.raw(TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()))
+                    ),
                 Line.from(
                     Span.raw("Job:   "),
                     Span.styled(execution.getHtmlUrl(), Style.EMPTY.underlined().hyperlink(execution.getHtmlUrl()))
