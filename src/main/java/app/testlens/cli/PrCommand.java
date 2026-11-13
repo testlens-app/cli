@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli;
 
-import static app.testlens.cli.CommandSupport.isInteractiveTerminal;
+import static app.testlens.cli.CommandSupport.apiClient;
 import static app.testlens.cli.CommandSupport.resolveRepo;
 import static app.testlens.cli.util.Console.clearProgress;
 import static app.testlens.cli.util.Console.diffLine;
@@ -12,14 +12,12 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
-import app.testlens.cli.client.ApiClient;
 import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.PullRequestsApi;
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.client.model.PullRequestResponse;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
-import app.testlens.cli.tui.PrTui;
 import app.testlens.cli.util.Console;
 import app.testlens.cli.util.TextDiff;
 import app.testlens.cli.util.TimeFormat;
@@ -52,46 +50,19 @@ public class PrCommand implements Callable<Integer> {
     @Parameters(description = "Pull request number", arity = "1")
     int number;
 
-    @Option(
-        names = "--repo",
-        description = "Repository as owner/repo (defaults to the GitHub remote 'origin' of the current directory)"
-    )
-    @Nullable
-    String repo;
-
-    @Option(
-        names = "--token",
-        description = "GitHub access token (defaults to $GITHUB_TOKEN or $GH_TOKEN)",
-        defaultValue = "${env:GITHUB_TOKEN:-${env:GH_TOKEN}}"
-    )
-    @Nullable
-    String token;
-
     @Option(names = "--sha", description = "Commit sha to show the tests of (defaults to the head of the pull request)")
     @Nullable
     String sha;
-
-    @Option(
-        names = "--mode",
-        description = "Output mode: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}, uses the TUI in an interactive terminal)",
-        defaultValue = "auto"
-    )
-    Mode mode = Mode.AUTO;
-
-    @Option(
-        names = "--base-url",
-        description = "API base URL",
-        defaultValue = "https://api.testlens.app",
-        hidden = true
-    )
-    @Nullable
-    String baseUrl;
 
     @Override
     public Integer call() throws Exception {
         var commandLine = requireNonNull(spec).commandLine();
         var out = commandLine.getOut();
         var err = commandLine.getErr();
+        var root = CommandSupport.root(spec);
+        var repo = root.repo;
+        var token = root.token;
+        var baseUrl = root.baseUrl;
         if (token == null || token.isBlank()) {
             err.println("No GitHub token provided (use --token or set GITHUB_TOKEN)");
             return 2;
@@ -101,30 +72,20 @@ public class PrCommand implements Callable<Integer> {
             err.println("Cannot determine repository (use --repo owner/repo)");
             return 2;
         }
-        var apiClient = new ApiClient();
-        apiClient.updateBaseUri(requireNonNull(baseUrl));
-        apiClient.setRequestInterceptor(request -> request.header("Authorization", "Bearer " + token));
-        var api = new PullRequestsApi(apiClient);
+        var api = new PullRequestsApi(apiClient(token, requireNonNull(baseUrl)));
         var ansi = commandLine.getColorScheme().ansi();
         try {
-            var tui = mode == Mode.TUI || (mode == Mode.AUTO && isInteractiveTerminal());
             showProgress(out, ansi, "Fetching pull request...");
             var pr = api.getPullRequest(ownerAndRepo[0], ownerAndRepo[1], number);
             clearProgress(out, ansi);
             var prUrl = "https://github.com/" + ownerAndRepo[0] + "/" + ownerAndRepo[1] + "/pull/" + pr.getNumber();
-            if (!tui) {
-                printPullRequest(out, ansi, pr, prUrl);
-                out.println();
-            }
+            printPullRequest(out, ansi, pr, prUrl);
+            out.println();
             showProgress(out, ansi, "Fetching tests...");
             var tests =
                 api.getPullRequestTests(ownerAndRepo[0], ownerAndRepo[1], number, sha != null ? sha : pr.getHeadSha());
             clearProgress(out, ansi);
-            if (tui) {
-                PrTui.run(pr, tests);
-            } else {
-                printTests(out, ansi, tests);
-            }
+            printTests(out, ansi, tests);
             return 0;
         } catch (ApiException e) {
             clearProgress(out, ansi);
@@ -137,12 +98,6 @@ public class PrCommand implements Callable<Integer> {
             );
             return 1;
         }
-    }
-
-    enum Mode {
-        AUTO,
-        TUI,
-        CLI
     }
 
     static String testName(ExecutedTest test) {
