@@ -4,7 +4,7 @@ package app.testlens.cli.tui.controller;
 import static java.util.Objects.requireNonNull;
 
 import app.testlens.cli.client.model.FlakinessStatisticResponse;
-import app.testlens.cli.tui.view.FlakinessView;
+import app.testlens.cli.tui.view.FlakinessTableView;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyEvent;
@@ -22,7 +22,7 @@ public final class FlakinessTableController {
     public static final String VIEW_ID = "flakiness";
 
     private final FocusManager focusManager;
-    private final List<FlakinessStatisticResponse> statistics;
+    private List<FlakinessStatisticResponse> statistics;
     private final TableState tableState = new TableState();
     private Consumer<FlakinessStatisticResponse> onOpenTest = statistic -> {};
     private @Nullable String error;
@@ -32,6 +32,16 @@ public final class FlakinessTableController {
         List<FlakinessStatisticResponse> statistics
     ) {
         this.focusManager = focusManager;
+        this.statistics = List.copyOf(statistics);
+        if (!statistics.isEmpty()) {
+            tableState.select(0);
+        }
+    }
+
+    /**
+     * Replaces the statistics after an asynchronous load or a branch switch, resetting the selection to the first row.
+     */
+    public void setStatistics(List<FlakinessStatisticResponse> statistics) {
         this.statistics = List.copyOf(statistics);
         if (!statistics.isEmpty()) {
             tableState.select(0);
@@ -83,9 +93,9 @@ public final class FlakinessTableController {
         } else if (event.isDown() || event.isChar('j')) {
             target = selected + 1;
         } else if (event.isPageUp()) {
-            target = selected - FlakinessView.MAX_VISIBLE_STATISTICS;
+            target = selected - FlakinessTableView.MAX_VISIBLE_STATISTICS;
         } else if (event.isPageDown()) {
-            target = selected + FlakinessView.MAX_VISIBLE_STATISTICS;
+            target = selected + FlakinessTableView.MAX_VISIBLE_STATISTICS;
         } else if (event.isHome()) {
             target = 0;
         } else if (event.isEnd()) {

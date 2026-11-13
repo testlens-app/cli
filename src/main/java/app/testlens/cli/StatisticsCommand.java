@@ -2,7 +2,6 @@
 package app.testlens.cli;
 
 import static app.testlens.cli.CommandSupport.apiClient;
-import static app.testlens.cli.CommandSupport.isInteractiveTerminal;
 import static app.testlens.cli.CommandSupport.resolveRepo;
 import static app.testlens.cli.util.Console.clearProgress;
 import static app.testlens.cli.util.Console.showProgress;
@@ -11,10 +10,8 @@ import static java.util.Objects.requireNonNull;
 
 import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.StatisticsApi;
-import app.testlens.cli.client.api.TestsApi;
 import app.testlens.cli.client.model.FlakinessStatisticResponse;
 import app.testlens.cli.client.model.FlakyCount;
-import app.testlens.cli.tui.StatisticsTui;
 import app.testlens.cli.tui.model.TestInfo;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -56,41 +53,14 @@ public class StatisticsCommand {
         @Nullable
         String branch;
 
-        @Option(
-            names = "--repo",
-            description = "Repository as owner/repo (defaults to the GitHub remote 'origin' of the current directory)"
-        )
-        @Nullable
-        String repo;
-
-        @Option(
-            names = "--token",
-            description = "GitHub access token (defaults to $GITHUB_TOKEN or $GH_TOKEN)",
-            defaultValue = "${env:GITHUB_TOKEN:-${env:GH_TOKEN}}"
-        )
-        @Nullable
-        String token;
-
-        @Option(
-            names = "--mode",
-            description = "Output mode: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}, uses the TUI in an interactive terminal)",
-            defaultValue = "auto"
-        )
-        Mode mode = Mode.AUTO;
-
-        @Option(
-            names = "--base-url",
-            description = "API base URL",
-            defaultValue = "https://api.testlens.app",
-            hidden = true
-        )
-        @Nullable
-        String baseUrl;
-
         @Override
         public Integer call() throws Exception {
             var out = requireNonNull(spec).commandLine().getOut();
             var err = spec.commandLine().getErr();
+            var root = CommandSupport.root(spec);
+            var repo = root.repo;
+            var token = root.token;
+            var baseUrl = root.baseUrl;
             if (token == null || token.isBlank()) {
                 err.println("No GitHub token provided (use --token or set GITHUB_TOKEN)");
                 return 2;
@@ -103,10 +73,8 @@ public class StatisticsCommand {
             var owner = ownerAndRepo[0];
             var repoName = ownerAndRepo[1];
             var ansi = spec.commandLine().getColorScheme().ansi();
-            var apiClient = apiClient(token, requireNonNull(baseUrl));
+            var api = new StatisticsApi(apiClient(token, requireNonNull(baseUrl)));
             try {
-                var api = new StatisticsApi(apiClient);
-                var tui = mode == Mode.TUI || (mode == Mode.AUTO && isInteractiveTerminal());
                 showProgress(out, ansi, "Fetching statistics...");
                 var statistics = api.getFlakinessStatistics(owner, repoName, branch, null, null);
                 clearProgress(out, ansi);
@@ -114,11 +82,7 @@ public class StatisticsCommand {
                 var shownBranch = branch != null
                     ? branch
                     : statistics.stream().findFirst().map(FlakinessStatisticResponse::getBranch).orElse(null);
-                if (tui) {
-                    StatisticsTui.run(new TestsApi(apiClient), owner, repoName, shownBranch, statistics);
-                } else {
-                    printStatistics(out, ansi, shownBranch, statistics);
-                }
+                printStatistics(out, ansi, shownBranch, statistics);
                 return 0;
             } catch (ApiException e) {
                 clearProgress(out, ansi);
@@ -131,12 +95,6 @@ public class StatisticsCommand {
                 );
                 return 1;
             }
-        }
-
-        enum Mode {
-            AUTO,
-            TUI,
-            CLI
         }
     }
 

@@ -12,7 +12,6 @@ import app.testlens.cli.tui.model.TestInfo;
 import app.testlens.cli.tui.view.FlakesView;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
-import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
 import dev.tamboui.widgets.table.TableState;
 import java.util.List;
@@ -143,17 +142,6 @@ public final class FlakesController {
 
     // Tab moves from the table to the details pane, Shift+Tab back
     private EventResult navigate(KeyEvent event) {
-        if (!event.isKey(KeyCode.TAB)) {
-            return EventResult.UNHANDLED;
-        }
-        if (!event.hasShift() && isFocused()) {
-            focusManager.setFocus(PrDetailsController.VIEW_ID);
-            return EventResult.HANDLED;
-        }
-        if (event.hasShift() && focusManager.isFocused(PrDetailsController.VIEW_ID)) {
-            focusManager.setFocus(VIEW_ID);
-            return EventResult.HANDLED;
-        }
-        return EventResult.UNHANDLED;
+        return PaneSwitcher.switchFocus(focusManager, List.of(VIEW_ID, PrDetailsController.VIEW_ID), event);
     }
 }
