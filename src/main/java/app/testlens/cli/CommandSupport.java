@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
+import picocli.CommandLine.Model.CommandSpec;
 
 /**
  * Shared plumbing of the commands: repository resolution, token handling and API client setup. The convention
@@ -23,6 +24,11 @@ public final class CommandSupport {
 
     static String @Nullable [] resolveRepo(@Nullable String repoOption) {
         return repoOption != null ? repoOption.split("/", 2) : parseRemote(gitRemoteUrl());
+    }
+
+    /** The root command instance, which holds the inherited connection options ({@code --repo} &c.). */
+    static Testlens root(@Nullable CommandSpec spec) {
+        return (Testlens) requireNonNull(spec).root().userObject();
     }
 
     /** Parses owner/repo from a GitHub remote URL. */
@@ -54,7 +60,7 @@ public final class CommandSupport {
     }
 
     /** Display name of a test, skipping the first display name which denotes the test engine. */
-    static String testName(List<String> displayNames) {
+    public static String testName(List<String> displayNames) {
         return String.join(" > ", displayNames.subList(Math.min(1, displayNames.size()), displayNames.size()));
     }
 

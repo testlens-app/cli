@@ -1,4 +1,5 @@
 import app.testlens.gradle.tasks.GenerateModelReflectionConfig
+import java.net.URI
 import kotlin.text.Charsets.UTF_8
 import org.graalvm.buildtools.gradle.tasks.BuildNativeImageTask
 import org.graalvm.buildtools.gradle.tasks.GenerateResourcesConfigFile
@@ -38,16 +39,24 @@ sourceSets {
 
 val downloadOpenApiSpec =
     tasks.register("downloadOpenApiSpec") {
-        val uri = "https://api.testlens.app/v1/openapi"
-        inputs.property("uri", uri)
+        // The deployed spec is the release source (ADR-013). During development, an unreleased endpoint is not in
+        // it yet, so the generator picks up a locally exported spec when one is present: the -P override
+        // `testlens.openapi.uri` wins, then `local-openapi.json` in the repo root (git-ignored), then the deployed
+        // URI. CLI code using unreleased endpoints merges only after the API deploys them.
+        val deployedUri = "https://api.testlens.app/v1/openapi"
+        val explicitUri = providers.gradleProperty("testlens.openapi.uri")
+        val localSpec = layout.projectDirectory.file("local-openapi.json")
         val specFile = layout.buildDirectory.file("openapi-spec.yml")
         outputs.file(specFile)
         outputs.upToDateWhen { false } // depends on remote URL
-        val resource = resources.text.fromUri(uri)
         doFirst {
-            specFile.get().asFile.writer(UTF_8).use {
-                resource.asReader().copyTo(it)
+            val uri = when {
+                explicitUri.isPresent -> explicitUri.get()
+                localSpec.asFile.isFile -> localSpec.asFile.toURI().toString()
+                else -> deployedUri
             }
+            val body = URI.create(uri).toURL().openStream().bufferedReader(UTF_8).use { it.readText() }
+            specFile.get().asFile.writer(UTF_8).use { it.write(body) }
         }
     }
 

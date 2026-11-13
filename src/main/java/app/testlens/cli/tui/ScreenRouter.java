@@ -21,6 +21,22 @@ public final class ScreenRouter {
         String focusId();
 
         Element render();
+
+        /**
+         * Whether a modal input of this screen (e.g. an active search or a prompt) must receive keys that the TUI
+         * would otherwise treat as global keys, such as {@code q} for quit.
+         */
+        default boolean modalInputActive() {
+            return false;
+        }
+
+        /**
+         * Screen-specific global keys, handled ahead of the back/quit handling. Used by the home screen's quick
+         * actions, which must work while no pane is focused.
+         */
+        default EventResult handleGlobalKey(KeyEvent event) {
+            return EventResult.UNHANDLED;
+        }
     }
 
     private final FocusManager focusManager;
@@ -61,6 +77,25 @@ public final class ScreenRouter {
 
     public Element render() {
         return screen().render();
+    }
+
+    /** Whether the given screen is anywhere on the stack (identity comparison). */
+    public boolean isDisplayed(Screen screen) {
+        return stack.contains(screen);
+    }
+
+    /**
+     * Makes an already displayed screen the top of the stack, restoring each intermediate screen's focus on the way,
+     * like repeated {@link #back()}; returns whether the screen was displayed.
+     */
+    public boolean reveal(Screen screen) {
+        if (!isDisplayed(screen)) {
+            return false;
+        }
+        while (screen() != screen) {
+            back();
+        }
+        return true;
     }
 
     /** The back/quit handling shared by all router-based TUIs: Esc/q go back, and quit at the root screen. */

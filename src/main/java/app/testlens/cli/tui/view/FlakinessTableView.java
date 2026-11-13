@@ -1,19 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui.view;
 
-import static app.testlens.cli.tui.controller.FlakinessTableController.VIEW_ID;
 import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
 import static app.testlens.cli.tui.view.PrTuiUtils.truncate;
-import static dev.tamboui.style.Color.RED;
-import static dev.tamboui.toolkit.Toolkit.column;
-import static dev.tamboui.toolkit.Toolkit.dialog;
-import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.table;
-import static dev.tamboui.toolkit.Toolkit.text;
 
 import app.testlens.cli.client.model.FlakinessStatisticResponse;
 import app.testlens.cli.client.model.FlakyCount;
-import app.testlens.cli.tui.ScreenRouter;
 import app.testlens.cli.tui.controller.FlakinessTableController;
 import dev.tamboui.layout.Constraint;
 import dev.tamboui.layout.Rect;
@@ -35,11 +28,10 @@ import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The ranked flakiness list: one turn table row per statistic (test and work unit), ranked by flakiness. Selecting a
- * row and pressing Enter drills down into the flakes screen of the entry's test, pushed onto the
- * {@link ScreenRouter}.
+ * The ranked flakiness table: one row per statistic (test and work unit), ranked by flakiness, with the visible-row
+ * scrollbar and memoized column widths. Extracted from the former FlakinessView, shared by the home screen.
  */
-public final class FlakinessView implements ScreenRouter.Screen {
+public final class FlakinessTableView {
 
     /** Visible rows of the statistics table, shared with the controller for page-wise selection. */
     public static final int MAX_VISIBLE_STATISTICS = 10;
@@ -53,17 +45,17 @@ public final class FlakinessView implements ScreenRouter.Screen {
     private static final int COLUMN_SPACING = 3;
     private static final int TABLE_DECORATION_WIDTH = 2 + 2 + 5 * COLUMN_SPACING;
     private static final int TABLE_CHROME_HEIGHT = 3;
+    private static final int MAX_WORK_UNIT_WIDTH = 32;
 
     private final FlakinessTableController controller;
-    private final @Nullable String branch;
     private final TableElement table;
+    // the statistics do not change while the screen is visible, so the layout is memoized by width only
     private int tableWidth = -1;
 
-    public FlakinessView(FlakinessTableController controller, @Nullable String branch) {
+    public FlakinessTableView(FlakinessTableController controller) {
         this.controller = controller;
-        this.branch = branch;
         this.table = table()
-            .id(VIEW_ID)
+            .id(FlakinessTableController.VIEW_ID)
             .title("Flakiest tests")
             .rounded()
             .borderColor(Color.DARK_GRAY)
@@ -85,37 +77,19 @@ public final class FlakinessView implements ScreenRouter.Screen {
             .onKeyEvent(controller::handleKey);
     }
 
-    @Override
-    public String focusId() {
-        return VIEW_ID;
+    /** Invalidates the memoized column widths; call after the statistics changed. */
+    public void dataChanged() {
+        tableWidth = -1;
     }
 
-    @Override
-    public Element render() {
-        var statistics = controller.statistics();
-        var rowCount = Math.min(statistics.size(), MAX_VISIBLE_STATISTICS) + TABLE_CHROME_HEIGHT;
-        var content = column(header(), statisticsTable(Constraint.length(Math.max(rowCount, 1))), footer());
-        var error = controller.error();
-        if (error == null) {
-            return content;
-        }
-        return stack(content, dialog(text(error)).rounded().borderColor(RED).width(error.length() + 4));
-    }
-
-    private Element header() {
-        var title = branch == null ? "Flakiness ranking" : "Flakiness ranking · branch " + branch;
-        return text(title).bold().cyan().length(1);
-    }
-
-    private Element footer() {
-        return text("↑/↓ select · Enter view flakes · Esc/q quit").dim().length(1);
-    }
-
-    private Element statisticsTable(Constraint constraint) {
+    /** The table element, sized to the visible rows plus chrome, with a scrollbar when rows overflow. */
+    public Element element() {
+        var constraint = Constraint.fill();
         return new Element() {
             @Override
             public void render(Frame frame, Rect area, RenderContext context) {
                 fitColumns(area.width());
+                table.highlightStyle(controller.isFocused() ? Style.EMPTY.reversed() : Style.EMPTY);
                 context.renderChild(table, frame, area);
                 var statistics = controller.statistics();
                 var visibleRows = area.height() - TABLE_CHROME_HEIGHT;
@@ -144,7 +118,6 @@ public final class FlakinessView implements ScreenRouter.Screen {
         };
     }
 
-    // the statistics do not change while the screen is visible, so the layout is memoized by width only
     private void fitColumns(int width) {
         if (width == tableWidth) {
             return;
@@ -156,19 +129,25 @@ public final class FlakinessView implements ScreenRouter.Screen {
             statistics,
             statistic -> severityLabel(statistic.getFlaky().getSeverity())
         );
-        var flakyWidth = maxColumnWidth(FLAKY_HEADER, statistics, FlakinessView::flakyLabel);
+        var flakyWidth = maxColumnWidth(FLAKY_HEADER, statistics, FlakinessTableView::flakyLabel);
         var failedWidth =
             maxColumnWidth(FAILED_HEADER, statistics, statistic -> failedLabel(statistic.getFailed().getCount()));
         var available = Math.max(0, width - TABLE_DECORATION_WIDTH - severityWidth - flakyWidth - failedWidth);
-        // job and work unit are de-emphasized to the last columns and capped, so the test name keeps the leftovers
-        var jobWidth = Math.min(
-            maxColumnWidth(JOB_HEADER, statistics, FlakinessStatisticResponse::getJob),
-            Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available))
-        );
-        var workUnitWidth = Math.min(
-            maxColumnWidth(WORK_UNIT_HEADER, statistics, FlakinessStatisticResponse::getWorkUnit),
-            Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available - jobWidth))
-        );
+        // in narrow panes (the dashboard split) the de-emphasized job and work unit columns drop out — the jobs
+        // pane next to the ranking covers jobs — and the test name abbreviates to its innermost segment
+        var compact = available < 34;
+        var jobWidth = compact
+            ? 0
+            : Math.min(
+                maxColumnWidth(JOB_HEADER, statistics, FlakinessStatisticResponse::getJob),
+                Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available))
+            );
+        var workUnitWidth = compact
+            ? 0
+            : Math.min(
+                maxColumnWidth(WORK_UNIT_HEADER, statistics, FlakinessStatisticResponse::getWorkUnit),
+                Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available - jobWidth))
+            );
         var testWidth = Math.max(1, available - jobWidth - workUnitWidth);
 
         var finalWorkUnitWidth = workUnitWidth;
@@ -187,8 +166,6 @@ public final class FlakinessView implements ScreenRouter.Screen {
                 Constraint.length(finalWorkUnitWidth)
             );
     }
-
-    private static final int MAX_WORK_UNIT_WIDTH = 32;
 
     private static int maxColumnWidth(
         String header,
@@ -210,11 +187,12 @@ public final class FlakinessView implements ScreenRouter.Screen {
         int testWidth
     ) {
         var severity = statistic.getFlaky().getSeverity();
+        var compact = jobWidth == 0 && workUnitWidth == 0;
         return Row.from(
             Cell.from(Span.styled(severityLabel(severity), Style.EMPTY.fg(severityColor(severity)))),
             Cell.from(flakyLabel(statistic)),
             Cell.from(failedLabel(statistic.getFailed().getCount())),
-            Cell.from(abbreviatedTestName(statistic.getDisplayNames(), testWidth)),
+            Cell.from(testNameCell(statistic.getDisplayNames(), testWidth, compact)),
             // de-emphasized: job and work unit differentiate the rows of one test (e.g. a JDK matrix) but are the
             // least relevant part of the ranking scan
             Cell.from(
@@ -230,6 +208,18 @@ public final class FlakinessView implements ScreenRouter.Screen {
                 )
             )
         );
+    }
+
+    /**
+     * The test cell of a ranking row. Wide layouts keep the class prefix and abbreviate the middle; narrow dashboard
+     * panes truncate to the innermost segment, which is the identity worth scanning.
+     */
+    private static String testNameCell(List<String> displayNames, int width, boolean compact) {
+        if (compact) {
+            var name = String.join(" > ", displayNames.subList(Math.min(1, displayNames.size()), displayNames.size()));
+            return truncate(name, width, CharWidth.TruncatePosition.START);
+        }
+        return abbreviatedTestName(displayNames, width);
     }
 
     private static String severityLabel(FlakyCount.@Nullable SeverityEnum severity) {

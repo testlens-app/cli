@@ -3,7 +3,6 @@ package app.testlens.cli;
 
 import static app.testlens.cli.CommandSupport.apiClient;
 import static app.testlens.cli.CommandSupport.filterSuffix;
-import static app.testlens.cli.CommandSupport.isInteractiveTerminal;
 import static app.testlens.cli.CommandSupport.resolveRepo;
 import static app.testlens.cli.util.Console.clearProgress;
 import static app.testlens.cli.util.Console.diffLine;
@@ -16,7 +15,6 @@ import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.TestsApi;
 import app.testlens.cli.client.model.TestExecutionResponse;
 import app.testlens.cli.client.model.TestResponse;
-import app.testlens.cli.tui.TestExecutionsTui;
 import app.testlens.cli.tui.model.TestInfo;
 import app.testlens.cli.util.Console;
 import app.testlens.cli.util.TextDiff;
@@ -78,41 +76,14 @@ public class TestCommand implements Callable<Integer> {
     @Nullable
     String job;
 
-    @Option(
-        names = "--repo",
-        description = "Repository as owner/repo (defaults to the GitHub remote 'origin' of the current directory)"
-    )
-    @Nullable
-    String repo;
-
-    @Option(
-        names = "--token",
-        description = "GitHub access token (defaults to $GITHUB_TOKEN or $GH_TOKEN)",
-        defaultValue = "${env:GITHUB_TOKEN:-${env:GH_TOKEN}}"
-    )
-    @Nullable
-    String token;
-
-    @Option(
-        names = "--mode",
-        description = "Output mode: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}, uses the TUI in an interactive terminal)",
-        defaultValue = "auto"
-    )
-    Mode mode = Mode.AUTO;
-
-    @Option(
-        names = "--base-url",
-        description = "API base URL",
-        defaultValue = "https://api.testlens.app",
-        hidden = true
-    )
-    @Nullable
-    String baseUrl;
-
     @Override
     public Integer call() throws Exception {
         var out = requireNonNull(spec).commandLine().getOut();
         var err = spec.commandLine().getErr();
+        var root = CommandSupport.root(spec);
+        var repo = root.repo;
+        var token = root.token;
+        var baseUrl = root.baseUrl;
         if (id != null && (uniqueId != null || query != null)) {
             err.println("Provide either a test id or a search filter (--unique-id/--query), not both");
             return 2;
@@ -170,20 +141,15 @@ public class TestCommand implements Callable<Integer> {
         long testId
     ) throws Exception {
         try {
-            var tui = mode == Mode.TUI || (mode == Mode.AUTO && isInteractiveTerminal());
             showProgress(out, ansi, "Fetching test...");
             var test = api.getTest(owner, repoName, testId);
             clearProgress(out, ansi);
             var info = TestInfo.of(test);
             var loader = new ExecutionsLoader(api, owner, repoName, testId, branch, workUnit, job);
-            if (tui) {
-                TestExecutionsTui.run(info, loader, branch, workUnit, job);
-            } else {
-                showProgress(out, ansi, "Fetching executions...");
-                var executions = loader.first();
-                clearProgress(out, ansi);
-                printTest(out, ansi, info, branch, workUnit, job, executions.executions());
-            }
+            showProgress(out, ansi, "Fetching executions...");
+            var executions = loader.first();
+            clearProgress(out, ansi);
+            printTest(out, ansi, info, branch, workUnit, job, executions.executions());
             return 0;
         } catch (ApiException e) {
             clearProgress(out, ansi);
@@ -311,11 +277,5 @@ public class TestCommand implements Callable<Integer> {
             case FAILED -> Style.fg_red;
             case SKIPPED, MUTED, ABORTED -> Style.fg_yellow;
         };
-    }
-
-    enum Mode {
-        AUTO,
-        TUI,
-        CLI
     }
 }
