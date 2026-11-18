@@ -3,7 +3,6 @@ package app.testlens.cli;
 
 import static app.testlens.cli.CommandSupport.apiClient;
 import static app.testlens.cli.CommandSupport.filterSuffix;
-import static app.testlens.cli.CommandSupport.isInteractiveTerminal;
 import static app.testlens.cli.CommandSupport.resolveRepo;
 import static app.testlens.cli.util.Console.clearProgress;
 import static app.testlens.cli.util.Console.showProgress;
@@ -11,12 +10,10 @@ import static app.testlens.cli.util.Console.styled;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 
-import app.testlens.cli.TestCommand.Mode;
 import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.TestsApi;
 import app.testlens.cli.client.model.FlakeResponse;
 import app.testlens.cli.client.model.TestExecutionResponse;
-import app.testlens.cli.tui.FlakesTui;
 import app.testlens.cli.tui.controller.FlakesController;
 import app.testlens.cli.tui.model.TestInfo;
 import app.testlens.cli.util.Console;
@@ -64,41 +61,15 @@ public class FlakesCommand implements Callable<Integer> {
     @Nullable
     String job;
 
-    @Option(
-        names = "--repo",
-        description = "Repository as owner/repo (defaults to the GitHub remote 'origin' of the current directory)"
-    )
-    @Nullable
-    String repo;
-
-    @Option(
-        names = "--token",
-        description = "GitHub access token (defaults to $GITHUB_TOKEN or $GH_TOKEN)",
-        defaultValue = "${env:GITHUB_TOKEN:-${env:GH_TOKEN}}"
-    )
-    @Nullable
-    String token;
-
-    @Option(
-        names = "--mode",
-        description = "Output mode: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}, uses the TUI in an interactive terminal)",
-        defaultValue = "auto"
-    )
-    Mode mode = Mode.AUTO;
-
-    @Option(
-        names = "--base-url",
-        description = "API base URL",
-        defaultValue = "https://api.testlens.app",
-        hidden = true
-    )
-    @Nullable
-    String baseUrl;
-
     @Override
     public Integer call() throws Exception {
         var out = requireNonNull(spec).commandLine().getOut();
         var err = spec.commandLine().getErr();
+        var root = CommandSupport.root(spec);
+        var repo = root.repo;
+        var token = root.token;
+        var baseUrl = root.baseUrl;
+        var mode = root.mode;
         if (token == null || token.isBlank()) {
             err.println("No GitHub token provided (use --token or set GITHUB_TOKEN)");
             return 2;
@@ -113,18 +84,13 @@ public class FlakesCommand implements Callable<Integer> {
         var ansi = spec.commandLine().getColorScheme().ansi();
         var api = new TestsApi(apiClient(token, requireNonNull(baseUrl)));
         try {
-            var tui = mode == Mode.TUI || (mode == Mode.AUTO && isInteractiveTerminal());
             showProgress(out, ansi, "Fetching test...");
             var test = TestInfo.of(api.getTest(owner, repoName, id));
             clearProgress(out, ansi);
             showProgress(out, ansi, "Fetching flakes...");
             var flakes = fetchFlakes(api, owner, repoName, id, branch, workUnit, job);
             clearProgress(out, ansi);
-            if (tui) {
-                FlakesTui.run(test, branch, workUnit, job, flakes);
-            } else {
-                printFlakes(out, ansi, test, branch, workUnit, job, flakes);
-            }
+            printFlakes(out, ansi, test, branch, workUnit, job, flakes);
             return 0;
         } catch (ApiException e) {
             clearProgress(out, ansi);

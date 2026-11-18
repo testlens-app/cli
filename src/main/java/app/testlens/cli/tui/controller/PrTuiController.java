@@ -6,10 +6,8 @@ import app.testlens.cli.client.model.PullRequestTestsResponse;
 import app.testlens.cli.tui.model.PrTuiModel;
 import dev.tamboui.toolkit.event.EventResult;
 import dev.tamboui.toolkit.focus.FocusManager;
-import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 public final class PrTuiController {
 
@@ -66,31 +64,6 @@ public final class PrTuiController {
     }
 
     public EventResult navigate(KeyEvent event, String viewId) {
-        if (!isFocused(viewId)) {
-            return EventResult.UNHANDLED;
-        }
-        var index = VIEW_IDS.indexOf(viewId);
-        if (index == -1) {
-            return EventResult.UNHANDLED;
-        }
-        String target = null;
-        if (event.isKey(KeyCode.TAB) && !event.hasShift()) {
-            target = nextViewId(index);
-        } else if (event.isKey(KeyCode.TAB) && event.hasShift()) {
-            target = previousViewId(index);
-        }
-        if (target == null) {
-            return EventResult.UNHANDLED;
-        }
-        focusManager.setFocus(target);
-        return EventResult.HANDLED;
-    }
-
-    private static @Nullable String previousViewId(int index) {
-        return index > 0 ? VIEW_IDS.get(index - 1) : null;
-    }
-
-    private static @Nullable String nextViewId(int index) {
-        return index + 1 < VIEW_IDS.size() ? VIEW_IDS.get(index + 1) : null;
+        return PaneSwitcher.switchFocus(focusManager, VIEW_IDS, event);
     }
 }
