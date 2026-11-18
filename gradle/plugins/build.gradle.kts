@@ -1,5 +1,6 @@
 plugins {
     `kotlin-dsl`
+    id("org.gradlex.build-parameters") version "1.4.5"
 }
 
 tasks.test {
@@ -51,5 +52,13 @@ dependencies {
             }
             because("workaround for CVE-2026-55760")
         }
+    }
+}
+
+buildParameters {
+    enumeration("api") {
+        description = "The API version to use for generating the API client"
+        values.addAll("stable", "dev", "local")
+        defaultValue = "stable"
     }
 }
