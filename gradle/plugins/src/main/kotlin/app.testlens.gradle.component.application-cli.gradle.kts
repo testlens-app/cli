@@ -36,14 +36,31 @@ sourceSets {
     }
 }
 
+// Pre-compiled accessors of the build-parameters plugin are only available to build scripts of
+// the root build, so convention plugins have to fall back to the raw Gradle property. Values and
+// default must mirror the 'api' parameter in the plugins build.
+val api = providers.gradleProperty("api").orElse("stable").get()
+val stableUri = "https://api.testlens.app/v1/openapi"
+val specUri =
+    when (api) {
+        "stable" -> stableUri
+        "dev" -> "$stableUri/dev"
+        "local" -> "http://localhost:8080/v1/openapi/dev"
+        else -> throw GradleException("Invalid value '$api' for build parameter 'api' (expected one of: stable, dev, local)")
+    }
+
 val downloadOpenApiSpec =
     tasks.register("downloadOpenApiSpec") {
-        val uri = "https://api.testlens.app/v1/openapi"
-        inputs.property("uri", uri)
+        inputs.property("uri", specUri)
         val specFile = layout.buildDirectory.file("openapi-spec.yml")
         outputs.file(specFile)
         outputs.upToDateWhen { false } // depends on remote URL
-        val resource = resources.text.fromUri(uri)
+        // the local API is served over plain http, which needs an explicit opt-in for insecure protocols
+        val resource =
+            when (api) {
+                "local" -> resources.text.fromInsecureUri(specUri)
+                else -> resources.text.fromUri(specUri)
+            }
         doFirst {
             specFile.get().asFile.writer(UTF_8).use {
                 resource.asReader().copyTo(it)
