@@ -40,7 +40,9 @@ class FlakesCommandTest {
         .osName("Linux")
         .osVersion("6.8.0-45-generic")
         .osArch("amd64")
-        .javaVersion("21.0.5");
+        .javaVersion("21.0.5")
+        .buildToolType("Gradle")
+        .buildToolVersion("8.12");
 
     @RegisterExtension
     static WireMockExtension wireMock = WireMockExtension.newInstance()
@@ -110,7 +112,7 @@ class FlakesCommandTest {
             "   newest flake first, executions in chronological order",
             "",
             "  1. 0123456 @ main · :core:test · CI / build",
-            "     Linux 6.8.0-45-generic · amd64 · Java 21.0.5",
+            "     Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12",
             "      1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
             "         java.lang.AssertionError: boom",
             "      2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s))"

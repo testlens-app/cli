@@ -52,7 +52,9 @@ class TestCommandTest {
         .osName("Linux")
         .osVersion("6.8.0-45-generic")
         .osArch("amd64")
-        .javaVersion("21.0.5");
+        .javaVersion("21.0.5")
+        .buildToolType("Gradle")
+        .buildToolVersion("8.12");
 
     private static final Pattern OSC8_LINK = Pattern.compile("\\u001B]8;;(.*?)\\u001B\\\\");
 
@@ -135,14 +137,14 @@ class TestCommandTest {
             "   newest first, successful runs are not shown",
             "    1. FAILED (2026-01-02 03:04:05Z - 03:04:07Z (2s), see " + JOB_URL + ")",
             "       CI / build > :core:test · 0123456 @ main",
-            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5",
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12",
             "       - foo bar",
             "       + foo baz",
             "       java.lang.AssertionError: boom",
             "           at Foo.bar(Foo.java:1)",
             "    2. SUCCESSFUL (2026-01-02 04:04:05Z - 04:04:07Z (2s), see " + OTHER_JOB_URL + ")",
             "       :core:testJava21 · 89abcde @ main",
-            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5"
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12"
         );
     }
 

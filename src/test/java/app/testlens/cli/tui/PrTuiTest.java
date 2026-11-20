@@ -120,6 +120,8 @@ class PrTuiTest {
                                     .osVersion("6.8.0-45-generic")
                                     .osArch("amd64")
                                     .javaVersion("21.0.5")
+                                    .buildToolType("Gradle")
+                                    .buildToolVersion("8.12")
                             )
                     )
                 ),
@@ -127,7 +129,7 @@ class PrTuiTest {
         );
         var view = new PrTuiView(controller);
 
-        assertThat(render(view)).contains("Env:   Linux 6.8.0-45-generic · amd64 · Java 21.0.5");
+        assertThat(render(view)).contains("Env:   Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12");
     }
 
     @Test

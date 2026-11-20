@@ -17,7 +17,7 @@ public final class Console {
     private Console() {}
 
     /**
-     * Human-readable build environment, e.g. {@code "Linux 6.8.0-45-generic · amd64 · Java 21.0.5"}; {@code null}
+     * Human-readable build environment, e.g. {@code "Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12"}; {@code null}
      * without any data, so callers can omit the environment instead of printing placeholders.
      */
     public static @Nullable String environment(@Nullable BuildEnvironment environment) {
@@ -27,11 +27,15 @@ public final class Console {
         var os = Stream.of(environment.getOsName(), environment.getOsVersion())
             .filter(Objects::nonNull)
             .collect(Collectors.joining(" "));
+        var buildTool = Stream.of(environment.getBuildToolType(), environment.getBuildToolVersion())
+            .filter(Objects::nonNull)
+            .collect(Collectors.joining(" "));
         var parts = Stream
             .of(
                 os.isEmpty() ? null : os,
                 environment.getOsArch(),
-                environment.getJavaVersion() == null ? null : "Java " + environment.getJavaVersion()
+                environment.getJavaVersion() == null ? null : "Java " + environment.getJavaVersion(),
+                buildTool.isEmpty() ? null : buildTool
             )
             .filter(Objects::nonNull)
             .toList();

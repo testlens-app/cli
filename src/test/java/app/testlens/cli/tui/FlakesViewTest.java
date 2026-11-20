@@ -108,6 +108,8 @@ class FlakesViewTest {
                                 .osVersion("6.8.0-45-generic")
                                 .osArch("amd64")
                                 .javaVersion("21.0.5")
+                                .buildToolType("Gradle")
+                                .buildToolVersion("8.12")
                         )
                 )
                 .toList()
@@ -115,7 +117,7 @@ class FlakesViewTest {
         var controller = new FlakesController(new FocusManager(), TEST, List.of(flake));
 
         assertThat(render(new FlakesView(controller, TEST, null, null, null)))
-            .contains("Env:  Linux 6.8.0-45-generic · amd64 · Java 21.0.5");
+            .contains("Env:  Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12");
     }
 
     // the executions are deliberately newest first, to verify the tabs are chronological
