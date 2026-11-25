@@ -12,7 +12,7 @@ dependencies {
     implementation("com.diffplug.spotless:spotless-plugin-gradle:8.12.0")
     implementation("io.fuchs.gradle.classpath-collision-detector:classpath-collision-detector:1.0.0")
     implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:5.2.0")
-    implementation("org.graalvm.buildtools:native-gradle-plugin:1.1.19")
+    implementation("org.graalvm.buildtools:native-gradle-plugin:1.1.20")
     implementation("net.ltgt.nullaway:net.ltgt.nullaway.gradle.plugin:3.3.0")
     implementation("org.gradlex:jvm-dependency-conflict-resolution:2.5")
     implementation("org.gradlex:reproducible-builds:1.1")
