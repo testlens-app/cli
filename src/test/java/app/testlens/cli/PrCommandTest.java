@@ -47,7 +47,9 @@ class PrCommandTest {
         .osName("Linux")
         .osVersion("6.8.0-45-generic")
         .osArch("amd64")
-        .javaVersion("21.0.5");
+        .javaVersion("21.0.5")
+        .buildToolType("Gradle")
+        .buildToolVersion("8.12");
 
     private static final Pattern OSC8_LINK = Pattern.compile("\u001B]8;;(.*?)\u001B\\\\");
 
@@ -173,7 +175,7 @@ class PrCommandTest {
             "CI / build > :test",
             "  FooTests > bar()",
             "    1. FAILED (2026-01-02 03:04:05Z - 03:04:06Z (1s 500ms), see " + JOB_URL + ")",
-            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5",
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12",
             "       - foo bar",
             "       + foo baz",
             "       java.lang.AssertionError: boom",
@@ -182,7 +184,7 @@ class PrCommandTest {
             "       second",
             "           ... 1 more",
             "    2. SKIPPED (2026-01-02 03:04:05Z, see " + JOB_URL + ")",
-            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5"
+            "       Linux 6.8.0-45-generic · amd64 · Java 21.0.5 · Gradle 8.12"
         );
     }
 
