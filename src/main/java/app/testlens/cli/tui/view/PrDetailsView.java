@@ -3,6 +3,8 @@ package app.testlens.cli.tui.view;
 
 import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
 import static dev.tamboui.toolkit.Toolkit.richText;
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
@@ -22,6 +24,7 @@ import dev.tamboui.toolkit.element.Element;
 import dev.tamboui.toolkit.element.RenderContext;
 import dev.tamboui.toolkit.element.Size;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.IntFunction;
 import org.jspecify.annotations.Nullable;
 
@@ -60,14 +63,24 @@ public final class PrDetailsView {
         lines.add(
             Line.from(
                 Span.raw("Test:  "),
-                Span.raw(abbreviatedTestName(test.getDisplayNames(), width - DETAILS_LABEL_WIDTH))
+                Span.raw(
+                    abbreviatedTestName(
+                        requireNonNullElse(test.getDisplayNames(), List.of()),
+                        width - DETAILS_LABEL_WIDTH
+                    )
+                )
             )
         );
         lines.add(Line.from(Span.raw("Where: "), Span.raw(test.getJob() + " > " + test.getWorkUnit())));
         lines.add(
             Line.from(
                 Span.raw("Time:  "),
-                Span.raw(TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()))
+                Span.raw(
+                    TimeFormat.formatTime(
+                        requireNonNull(execution.getStartTime(), "no start time"),
+                        execution.getDurationMillis()
+                    )
+                )
             )
         );
         lines.add(

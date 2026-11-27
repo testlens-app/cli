@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static java.util.Objects.requireNonNullElse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.client.ApiClient;
@@ -92,8 +93,7 @@ class FlakesCommandTest {
         stubTest();
         var flake = flake("0123456789", ":core:test").job("CI / build");
         flake.executions(
-            flake
-                .getExecutions()
+            requireNonNullElse(flake.getExecutions(), List.<TestExecutionResponse>of())
                 .stream()
                 .map(execution -> execution.buildEnvironment(ENVIRONMENT))
                 .toList()

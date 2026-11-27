@@ -5,6 +5,8 @@ import static app.testlens.cli.tui.view.PrTuiUtils.abbreviatedTestName;
 import static app.testlens.cli.tui.view.PrTuiUtils.outcomeColor;
 import static app.testlens.cli.tui.view.PrTuiUtils.truncate;
 import static dev.tamboui.toolkit.Toolkit.table;
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.tui.controller.PrTestsTableController;
@@ -121,10 +123,10 @@ public final class PrTestsTableView {
         }
         tableWidth = width;
         lastContent = content;
-        var outcomeWidth = columnWidth(OUTCOME, test -> outcomeLabel(AggregatedOutcome.from(test.getExecutions())));
+        var outcomeWidth = columnWidth(OUTCOME, test -> outcomeLabel(outcomeOf(test)));
         var available = width - TABLE_DECORATION_WIDTH - outcomeWidth;
-        var jobWidth = columnWidth(JOB, ExecutedTest::getJob);
-        var workUnitWidth = columnWidth(WORK_UNIT_LABEL, ExecutedTest::getWorkUnit);
+        var jobWidth = columnWidth(JOB, test -> requireNonNullElse(test.getJob(), ""));
+        var workUnitWidth = columnWidth(WORK_UNIT_LABEL, test -> requireNonNullElse(test.getWorkUnit(), ""));
         // when the test column would get too narrow, shrink the work unit first, then the job
         var overflow = jobWidth + workUnitWidth + MIN_TEST_WIDTH - available;
         var workUnitShrink = Math.clamp(overflow, 0, Math.max(0, workUnitWidth - MIN_WORK_UNIT_WIDTH));
@@ -155,13 +157,17 @@ public final class PrTestsTableView {
         return Math.clamp(CharWidth.of(header), contentWidth, MAX_COLUMN_WIDTH);
     }
 
+    private static AggregatedOutcome outcomeOf(ExecutedTest test) {
+        return AggregatedOutcome.from(requireNonNull(test.getExecutions(), "no executions"));
+    }
+
     private static Row testRow(ExecutedTest test, int jobWidth, int workUnitWidth, int testWidth, String query) {
-        var outcome = AggregatedOutcome.from(test.getExecutions());
+        var outcome = outcomeOf(test);
         return Row.from(
             Cell.from(Span.styled(outcomeLabel(outcome), Style.EMPTY.fg(colorFor(outcome)))),
-            Cell.from(truncate(test.getJob(), jobWidth, TruncatePosition.MIDDLE)),
-            Cell.from(truncate(test.getWorkUnit(), workUnitWidth, TruncatePosition.MIDDLE)),
-            highlighted(abbreviatedTestName(test.getDisplayNames(), testWidth), query)
+            Cell.from(truncate(requireNonNullElse(test.getJob(), ""), jobWidth, TruncatePosition.MIDDLE)),
+            Cell.from(truncate(requireNonNullElse(test.getWorkUnit(), ""), workUnitWidth, TruncatePosition.MIDDLE)),
+            highlighted(abbreviatedTestName(requireNonNullElse(test.getDisplayNames(), List.of()), testWidth), query)
         );
     }
 

@@ -2,6 +2,8 @@
 package app.testlens.cli.tui.view;
 
 import static dev.tamboui.toolkit.Toolkit.richText;
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.Execution;
 import app.testlens.cli.tui.controller.PrDetailsController;
@@ -45,18 +47,23 @@ public final class FlakeDetailsView {
     }
 
     private static Text detailsHeader(Execution execution, @Nullable String environment) {
-        var htmlUrl = execution.getHtmlUrl();
+        // a missing job URL is mapped to an empty one
+        var htmlUrl = requireNonNullElse(execution.getHtmlUrl(), "");
         var lines = new ArrayList<Line>();
         lines.add(
             Line.from(
                 Span.raw("Time: "),
-                Span.raw(TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()))
+                Span.raw(
+                    TimeFormat.formatTime(
+                        requireNonNull(execution.getStartTime(), "no start time"),
+                        execution.getDurationMillis()
+                    )
+                )
             )
         );
         lines.add(
             Line.from(
                 Span.raw("Job:  "),
-                // a missing job URL is mapped to an empty one
                 htmlUrl.isEmpty()
                     ? Span.raw("-")
                     : Span.styled(htmlUrl, Style.EMPTY.underlined().hyperlink(htmlUrl))

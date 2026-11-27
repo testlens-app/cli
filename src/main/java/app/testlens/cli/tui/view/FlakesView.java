@@ -13,6 +13,7 @@ import static dev.tamboui.toolkit.Toolkit.dialog;
 import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.table;
 import static dev.tamboui.toolkit.Toolkit.text;
+import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
@@ -181,8 +182,8 @@ public final class FlakesView implements ScreenRouter.Screen {
         var jobWidth = contentWidth(JOB_LABEL, flake -> requireNonNullElse(flake.getJob(), ""));
         var available =
             Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - jobWidth - SHA_WIDTH - START_WIDTH);
-        var workUnitWidth = contentWidth(WORK_UNIT_LABEL, FlakeResponse::getWorkUnit);
-        var branchWidth = contentWidth(BRANCH_LABEL, FlakeResponse::getBranch);
+        var workUnitWidth = contentWidth(WORK_UNIT_LABEL, flake -> requireNonNullElse(flake.getWorkUnit(), ""));
+        var branchWidth = contentWidth(BRANCH_LABEL, flake -> requireNonNullElse(flake.getBranch(), ""));
         var overflow = workUnitWidth + branchWidth - available;
         var branchShrink = Math.clamp(overflow, 0, Math.max(0, branchWidth - MIN_BRANCH_WIDTH));
         branchWidth -= branchShrink;
@@ -224,7 +225,7 @@ public final class FlakesView implements ScreenRouter.Screen {
     }
 
     private static AggregatedOutcome outcome(ExecutedTest test) {
-        return AggregatedOutcome.from(test.getExecutions());
+        return AggregatedOutcome.from(requireNonNull(test.getExecutions(), "no executions"));
     }
 
     private static Row flakeRow(
@@ -234,15 +235,20 @@ public final class FlakesView implements ScreenRouter.Screen {
         int workUnitWidth,
         int branchWidth
     ) {
-        var outcome = outcome(test);
+        var executions = requireNonNull(test.getExecutions(), "no executions");
+        var outcome = AggregatedOutcome.from(executions);
         // executions are in chronological order, so the first one started the flake
-        var start = test.getExecutions().getFirst().getStartTime();
+        var start = requireNonNull(executions.getFirst().getStartTime(), "no start time");
         return Row.from(
             Cell.from(Span.styled(outcomeLabel(outcome), Style.EMPTY.fg(colorFor(outcome)))),
             Cell.from(truncate(requireNonNullElse(flake.getJob(), ""), jobWidth, CharWidth.TruncatePosition.MIDDLE)),
-            Cell.from(truncate(flake.getWorkUnit(), workUnitWidth, CharWidth.TruncatePosition.MIDDLE)),
-            Cell.from(truncate(flake.getBranch(), branchWidth, CharWidth.TruncatePosition.MIDDLE)),
-            Cell.from(Span.styled(abbreviatedSha(flake.getSha()), Style.EMPTY.dim())),
+            Cell.from(
+                truncate(requireNonNullElse(flake.getWorkUnit(), ""), workUnitWidth, CharWidth.TruncatePosition.MIDDLE)
+            ),
+            Cell.from(
+                truncate(requireNonNullElse(flake.getBranch(), ""), branchWidth, CharWidth.TruncatePosition.MIDDLE)
+            ),
+            Cell.from(Span.styled(abbreviatedSha(requireNonNullElse(flake.getSha(), "")), Style.EMPTY.dim())),
             Cell.from(Span.styled(TABLE_TIME.format(start.atZoneSameInstant(ZoneOffset.UTC)), Style.EMPTY.dim()))
         );
     }

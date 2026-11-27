@@ -8,6 +8,7 @@ import static app.testlens.cli.util.Console.clearProgress;
 import static app.testlens.cli.util.Console.showProgress;
 import static app.testlens.cli.util.Console.styled;
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.StatisticsApi;
@@ -157,9 +158,14 @@ public class StatisticsCommand {
             if (i > 0) {
                 out.println();
             }
+            var flaky = statistic.getFlaky();
             out.println(
-                "  " + (i + 1) + ". " + severityIcon(statistic.getFlaky().getSeverity()) + " "
-                    + styled(ansi, CommandSupport.testName(statistic.getDisplayNames()), Style.bold)
+                "  " + (i + 1) + ". " + severityIcon(flaky == null ? null : flaky.getSeverity()) + " "
+                    + styled(
+                        ansi,
+                        CommandSupport.testName(requireNonNullElse(statistic.getDisplayNames(), List.of())),
+                        Style.bold
+                    )
             );
             out.println("      " + styled(ansi, metaLine(statistic), Style.faint));
         }
@@ -168,9 +174,18 @@ public class StatisticsCommand {
     private static String metaLine(FlakinessStatisticResponse statistic) {
         var failed = statistic.getFailed();
         var flaky = statistic.getFlaky();
-        return "work unit " + statistic.getWorkUnit() + " · job " + statistic.getJob() + " · flaky " + flaky.getCount()
-            + "/" + flaky.getTotal()
-            + " (" + flaky.getPercentage() + "%) · failed " + failed.getCount() + " · test " + testId(statistic);
+        return "work unit " + statistic.getWorkUnit() + " · job " + statistic.getJob() + " · flaky "
+            + flakySummary(flaky)
+            + " · failed " + (failed == null || failed.getCount() == null ? "" : failed.getCount())
+            + " · test " + testId(statistic);
+    }
+
+    // the API leaves the flaky counts nullable when a statistic has no data
+    private static String flakySummary(@Nullable FlakyCount flaky) {
+        if (flaky == null || flaky.getCount() == null || flaky.getTotal() == null || flaky.getPercentage() == null) {
+            return "";
+        }
+        return flaky.getCount() + "/" + flaky.getTotal() + " (" + flaky.getPercentage() + "%)";
     }
 
     private static long testId(FlakinessStatisticResponse statistic) {

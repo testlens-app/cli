@@ -9,6 +9,7 @@ import static app.testlens.cli.util.Console.link;
 import static app.testlens.cli.util.Console.showProgress;
 import static app.testlens.cli.util.Console.styled;
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
@@ -25,6 +26,7 @@ import app.testlens.cli.util.TextDiff;
 import app.testlens.cli.util.TimeFormat;
 import java.io.PrintWriter;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
@@ -147,7 +149,7 @@ public class PrCommand implements Callable<Integer> {
 
     static String testName(ExecutedTest test) {
         // skip the first display name which denotes the test engine, like in the PR comment
-        var displayNames = test.getDisplayNames();
+        List<String> displayNames = requireNonNullElse(test.getDisplayNames(), List.of());
         return String.join(" > ", displayNames.subList(Math.min(1, displayNames.size()), displayNames.size()));
     }
 
@@ -162,12 +164,13 @@ public class PrCommand implements Callable<Integer> {
         out.println(styled(ansi, pr.getTitle() + " (" + numberLink + ")", Style.bold, Style.fg_blue));
         out.println("Head:  " + pr.getHeadSha());
         out.println("Tests: " + pr.getTestCount() + " executed");
-        out.println("Jobs:  " + pr.getJobs().getCompleted() + "/" + pr.getJobs().getTotal() + " completed");
+        var jobs = requireNonNull(pr.getJobs(), "no jobs");
+        out.println("Jobs:  " + jobs.getCompleted() + "/" + jobs.getTotal() + " completed");
     }
 
     private static void printTests(PrintWriter out, Ansi ansi, PullRequestTestsResponse tests) {
         out.println("Commit: " + tests.getSha());
-        var executedTests = tests.getTests();
+        List<ExecutedTest> executedTests = requireNonNullElse(tests.getTests(), List.of());
         if (executedTests.isEmpty()) {
             out.println();
             out.println("No failed or flaky tests.");
@@ -179,17 +182,22 @@ public class PrCommand implements Callable<Integer> {
             out.println(styled(ansi, workUnit, Style.underline));
             for (var test : testsInWorkUnit) {
                 out.println("  " + styled(ansi, testName(test), Style.bold));
-                var executions = test.getExecutions();
+                List<Execution> executions = requireNonNullElse(test.getExecutions(), List.of());
                 for (int i = 0; i < executions.size(); i++) {
                     var execution = executions.get(i);
-                    var outcome = execution.getOutcome();
-                    var jobLink = ansi.enabled()
-                        ? link(styled(ansi, "job", Style.underline), execution.getHtmlUrl())
-                        : execution.getHtmlUrl();
+                    var outcome = requireNonNull(execution.getOutcome(), "no outcome");
+                    var htmlUrl = execution.getHtmlUrl();
+                    var seeJob = htmlUrl == null
+                        ? ""
+                        : ", see " + (ansi.enabled()
+                            ? link(styled(ansi, "job", Style.underline), htmlUrl)
+                            : htmlUrl);
                     out.println(
                         "    " + (i + 1) + ". " + styled(ansi, outcome.toString(), color(outcome)) + " ("
-                            + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()) + ", see "
-                            + jobLink + ")"
+                            + TimeFormat.formatTime(
+                                requireNonNull(execution.getStartTime(), "no start time"),
+                                execution.getDurationMillis()
+                            ) + seeJob + ")"
                     );
                     var environment = Console.environment(execution.getBuildEnvironment());
                     if (environment != null) {

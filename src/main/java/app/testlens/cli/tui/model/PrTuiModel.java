@@ -2,6 +2,7 @@
 package app.testlens.cli.tui.model;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.PullRequestResponse;
@@ -24,7 +25,7 @@ public final class PrTuiModel {
         this(
             prResponse.getTitle() + " (#" + prResponse.getNumber() + ") · " + testsResponse.getSha(),
             "No failing tests detected on pull request #" + prResponse.getNumber(),
-            testsResponse.getTests()
+            requireNonNullElse(testsResponse.getTests(), List.of())
         );
     }
 

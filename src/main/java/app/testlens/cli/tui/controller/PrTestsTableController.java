@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 package app.testlens.cli.tui.controller;
 
+import static java.util.Objects.requireNonNullElse;
+
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.PullRequestTestsResponse;
 import app.testlens.cli.tui.model.TestListModel;
@@ -10,6 +12,7 @@ import dev.tamboui.toolkit.focus.FocusManager;
 import dev.tamboui.tui.event.KeyCode;
 import dev.tamboui.tui.event.KeyEvent;
 import dev.tamboui.widgets.table.TableState;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -34,7 +37,7 @@ public final class PrTestsTableController {
     ) {
         this.keyHandler = keyHandler;
         this.focusManager = focusManager;
-        this.model = new TestListModel(tests.getTests(), onSelectedTest);
+        this.model = new TestListModel(requireNonNullElse(tests.getTests(), List.of()), onSelectedTest);
         if (model.selectedIndex() >= 0) {
             state.select(model.selectedIndex());
         }

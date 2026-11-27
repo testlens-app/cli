@@ -14,6 +14,7 @@ import static dev.tamboui.toolkit.Toolkit.richTextArea;
 import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.table;
 import static dev.tamboui.toolkit.Toolkit.text;
+import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.TestExecutionResponse;
@@ -212,8 +213,10 @@ public final class ExecutionsView implements ScreenRouter.Screen {
         var jobWidth = contentWidth(JOB_LABEL, executions, execution -> requireNonNullElse(execution.getJob(), ""));
         var available =
             Math.max(0, width - TABLE_DECORATION_WIDTH - outcomeWidth - jobWidth - SHA_WIDTH - START_WIDTH);
-        var workUnitWidth = contentWidth(WORK_UNIT_LABEL, executions, TestExecutionResponse::getWorkUnit);
-        var branchWidth = contentWidth(BRANCH_LABEL, executions, TestExecutionResponse::getBranch);
+        var workUnitWidth =
+            contentWidth(WORK_UNIT_LABEL, executions, execution -> requireNonNullElse(execution.getWorkUnit(), ""));
+        var branchWidth =
+            contentWidth(BRANCH_LABEL, executions, execution -> requireNonNullElse(execution.getBranch(), ""));
         var overflow = workUnitWidth + branchWidth - available;
         var branchShrink = Math.clamp(overflow, 0, Math.max(0, branchWidth - MIN_BRANCH_WIDTH));
         branchWidth -= branchShrink;
@@ -241,7 +244,7 @@ public final class ExecutionsView implements ScreenRouter.Screen {
     private static int outcomeWidth(List<TestExecutionResponse> executions) {
         var contentWidth = executions
             .stream()
-            .mapToInt(execution -> CharWidth.of(execution.getOutcome().name()))
+            .mapToInt(execution -> CharWidth.of(requireNonNull(execution.getOutcome(), "no outcome").name()))
             .max()
             .orElse(0);
         return Math.max(CharWidth.of(OUTCOME), contentWidth);
@@ -267,21 +270,26 @@ public final class ExecutionsView implements ScreenRouter.Screen {
         int workUnitWidth,
         int branchWidth
     ) {
-        var sha = execution.getSha();
+        var outcome = requireNonNull(execution.getOutcome(), "no outcome");
+        var sha = requireNonNullElse(execution.getSha(), "");
+        var start = requireNonNull(execution.getStartTime(), "no start time").atZoneSameInstant(ZoneOffset.UTC);
         return Row.from(
-            Cell.from(Span.styled(execution.getOutcome().name(), Style.EMPTY.fg(outcomeColor(execution.getOutcome())))),
+            Cell.from(Span.styled(outcome.name(), Style.EMPTY.fg(outcomeColor(outcome)))),
             Cell.from(
                 truncate(requireNonNullElse(execution.getJob(), ""), jobWidth, CharWidth.TruncatePosition.MIDDLE)
             ),
-            Cell.from(truncate(execution.getWorkUnit(), workUnitWidth, CharWidth.TruncatePosition.MIDDLE)),
-            Cell.from(truncate(execution.getBranch(), branchWidth, CharWidth.TruncatePosition.MIDDLE)),
-            Cell.from(Span.styled(abbreviatedSha(sha), Style.EMPTY.dim())),
             Cell.from(
-                Span.styled(
-                    TABLE_TIME.format(execution.getStartTime().atZoneSameInstant(ZoneOffset.UTC)),
-                    Style.EMPTY.dim()
+                truncate(
+                    requireNonNullElse(execution.getWorkUnit(), ""),
+                    workUnitWidth,
+                    CharWidth.TruncatePosition.MIDDLE
                 )
-            )
+            ),
+            Cell.from(
+                truncate(requireNonNullElse(execution.getBranch(), ""), branchWidth, CharWidth.TruncatePosition.MIDDLE)
+            ),
+            Cell.from(Span.styled(abbreviatedSha(sha), Style.EMPTY.dim())),
+            Cell.from(Span.styled(TABLE_TIME.format(start), Style.EMPTY.dim()))
         );
     }
 
@@ -343,14 +351,18 @@ public final class ExecutionsView implements ScreenRouter.Screen {
                 Span.raw("Exec:  "),
                 Span.raw(
                     "#" + (snapshot.executionIndex() + 1) + "/" + snapshot.executions().size()
-                        + ", " + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis())
+                        + ", "
+                        + TimeFormat.formatTime(
+                            requireNonNull(execution.getStartTime(), "no start time"),
+                            execution.getDurationMillis()
+                        )
                 )
             )
         );
         var job = execution.getJob();
         lines.add(valueLine("Where: ", (job == null ? "" : job + " > ") + execution.getWorkUnit(), valueWidth));
-        lines.add(valueLine("Ref:   ", execution.getBranch(), valueWidth));
-        lines.add(valueLine("Sha:   ", execution.getSha(), valueWidth));
+        lines.add(valueLine("Ref:   ", requireNonNullElse(execution.getBranch(), ""), valueWidth));
+        lines.add(valueLine("Sha:   ", requireNonNullElse(execution.getSha(), ""), valueWidth));
         var htmlUrl = execution.getHtmlUrl();
         if (htmlUrl != null) {
             lines.add(

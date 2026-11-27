@@ -2,9 +2,11 @@
 package app.testlens.cli.tui.model;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.ExecutedTest;
 import app.testlens.cli.client.model.Execution;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -18,13 +20,13 @@ public record DetailsModel(@Nullable ExecutedTest test, int executionIndex) {
 
     public DetailsModel {
         if (test != null) {
-            executionIndex = Math.clamp(executionIndex, 0, test.getExecutions().size() - 1);
+            executionIndex = Math.clamp(executionIndex, 0, executionsOf(test).size() - 1);
         }
     }
 
     /** Selects a test; the last execution is shown by default. */
     public DetailsModel withTest(ExecutedTest test) {
-        return new DetailsModel(requireNonNull(test), test.getExecutions().size() - 1);
+        return new DetailsModel(requireNonNull(test), executionsOf(test).size() - 1);
     }
 
     /** Switches to the execution with the given index, clamped to the executions of the selected test. */
@@ -37,11 +39,16 @@ public record DetailsModel(@Nullable ExecutedTest test, int executionIndex) {
     }
 
     public int executionCount() {
-        return test == null ? 0 : test.getExecutions().size();
+        return test == null ? 0 : executionsOf(test).size();
     }
 
     /** The execution shown in the details pane. */
     public Execution execution() {
-        return requireNonNull(test, "no test selected").getExecutions().get(executionIndex);
+        return executionsOf(requireNonNull(test, "no test selected")).get(executionIndex);
+    }
+
+    private static List<Execution> executionsOf(ExecutedTest test) {
+        // the generated model keeps executions nullable for API responses that omit the property
+        return requireNonNullElse(test.getExecutions(), List.of());
     }
 }

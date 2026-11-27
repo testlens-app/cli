@@ -31,6 +31,7 @@ import dev.tamboui.tui.event.KeyEvent;
 import dev.tamboui.tui.event.KeyModifiers;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -456,7 +457,9 @@ class PrTuiTest {
             table.handleKey(KeyEvent.ofChar(c));
         }
         // in "alphatest()" the final "t" extends the consecutive match, in "alphabet()" it is a gap
-        assertThat(table.model().tests().stream().map(test -> test.getDisplayNames().get(2)).toList())
+        assertThat(
+            table.model().tests().stream().map(test -> Objects.requireNonNull(test.getDisplayNames()).get(2)).toList()
+        )
             .containsExactly("alphatest()", "alphabet()");
         assertThat(table.tableState().selected()).isZero();
     }

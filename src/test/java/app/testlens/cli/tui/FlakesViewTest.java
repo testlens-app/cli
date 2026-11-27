@@ -2,6 +2,7 @@
 package app.testlens.cli.tui;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.testlens.cli.client.model.BuildEnvironment;
@@ -97,8 +98,7 @@ class FlakesViewTest {
     void shows_the_build_environment_of_the_selected_flake() {
         var flake = flake("0123456789", ":core:test");
         flake.executions(
-            flake
-                .getExecutions()
+            requireNonNullElse(flake.getExecutions(), List.<TestExecutionResponse>of())
                 .stream()
                 .map(
                     execution -> execution

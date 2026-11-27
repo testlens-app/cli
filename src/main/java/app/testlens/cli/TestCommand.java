@@ -11,6 +11,7 @@ import static app.testlens.cli.util.Console.link;
 import static app.testlens.cli.util.Console.showProgress;
 import static app.testlens.cli.util.Console.styled;
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.ApiException;
 import app.testlens.cli.client.api.TestsApi;
@@ -215,13 +216,13 @@ public class TestCommand implements Callable<Integer> {
             out.println(
                 "  " + (i + 1) + ". " + styled(ansi, "test " + test.getId(), Style.bold) + " " + testName(test)
             );
-            out.println("      " + styled(ansi, test.getUniqueId(), Style.faint));
+            out.println("      " + styled(ansi, requireNonNullElse(test.getUniqueId(), ""), Style.faint));
         }
     }
 
     static String testName(TestResponse test) {
         // skip the first display name which denotes the test engine, like in the PR comment
-        return CommandSupport.testName(test.getDisplayNames());
+        return CommandSupport.testName(requireNonNullElse(test.getDisplayNames(), List.of()));
     }
 
     static void printTest(
@@ -262,7 +263,7 @@ public class TestCommand implements Callable<Integer> {
         boolean withWhere
     ) {
         var detailIndent = indent + "   ";
-        var outcome = execution.getOutcome();
+        var outcome = requireNonNull(execution.getOutcome(), "no outcome");
         var htmlUrl = execution.getHtmlUrl();
         var seeJob = htmlUrl == null
             ? ""
@@ -271,7 +272,10 @@ public class TestCommand implements Callable<Integer> {
                 : htmlUrl);
         out.println(
             indent + number + ". " + styled(ansi, outcome.toString(), color(outcome)) + " ("
-                + TimeFormat.formatTime(execution.getStartTime(), execution.getDurationMillis()) + seeJob + ")"
+                + TimeFormat.formatTime(
+                    requireNonNull(execution.getStartTime(), "no start time"),
+                    execution.getDurationMillis()
+                ) + seeJob + ")"
         );
         if (withWhere) {
             var job = execution.getJob();
@@ -301,7 +305,7 @@ public class TestCommand implements Callable<Integer> {
     }
 
     private static String sha(TestExecutionResponse execution) {
-        var sha = execution.getSha();
+        var sha = requireNonNullElse(execution.getSha(), "");
         return sha.length() > 7 ? sha.substring(0, 7) : sha;
     }
 

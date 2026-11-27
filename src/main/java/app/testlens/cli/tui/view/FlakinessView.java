@@ -10,6 +10,7 @@ import static dev.tamboui.toolkit.Toolkit.dialog;
 import static dev.tamboui.toolkit.Toolkit.stack;
 import static dev.tamboui.toolkit.Toolkit.table;
 import static dev.tamboui.toolkit.Toolkit.text;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.client.model.FlakinessStatisticResponse;
 import app.testlens.cli.client.model.FlakyCount;
@@ -151,22 +152,18 @@ public final class FlakinessView implements ScreenRouter.Screen {
         }
         tableWidth = width;
         var statistics = controller.statistics();
-        var severityWidth = maxColumnWidth(
-            SEVERITY_HEADER,
-            statistics,
-            statistic -> severityLabel(statistic.getFlaky().getSeverity())
-        );
+        var severityWidth =
+            maxColumnWidth(SEVERITY_HEADER, statistics, statistic -> severityLabel(severityOf(statistic)));
         var flakyWidth = maxColumnWidth(FLAKY_HEADER, statistics, FlakinessView::flakyLabel);
-        var failedWidth =
-            maxColumnWidth(FAILED_HEADER, statistics, statistic -> failedLabel(statistic.getFailed().getCount()));
+        var failedWidth = maxColumnWidth(FAILED_HEADER, statistics, FlakinessView::failedLabel);
         var available = Math.max(0, width - TABLE_DECORATION_WIDTH - severityWidth - flakyWidth - failedWidth);
         // job and work unit are de-emphasized to the last columns and capped, so the test name keeps the leftovers
         var jobWidth = Math.min(
-            maxColumnWidth(JOB_HEADER, statistics, FlakinessStatisticResponse::getJob),
+            maxColumnWidth(JOB_HEADER, statistics, statistic -> requireNonNullElse(statistic.getJob(), "")),
             Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available))
         );
         var workUnitWidth = Math.min(
-            maxColumnWidth(WORK_UNIT_HEADER, statistics, FlakinessStatisticResponse::getWorkUnit),
+            maxColumnWidth(WORK_UNIT_HEADER, statistics, statistic -> requireNonNullElse(statistic.getWorkUnit(), "")),
             Math.min(MAX_WORK_UNIT_WIDTH, Math.max(1, available - jobWidth))
         );
         var testWidth = Math.max(1, available - jobWidth - workUnitWidth);
@@ -209,27 +206,36 @@ public final class FlakinessView implements ScreenRouter.Screen {
         int workUnitWidth,
         int testWidth
     ) {
-        var severity = statistic.getFlaky().getSeverity();
+        var severity = severityOf(statistic);
         return Row.from(
             Cell.from(Span.styled(severityLabel(severity), Style.EMPTY.fg(severityColor(severity)))),
             Cell.from(flakyLabel(statistic)),
-            Cell.from(failedLabel(statistic.getFailed().getCount())),
-            Cell.from(abbreviatedTestName(statistic.getDisplayNames(), testWidth)),
+            Cell.from(failedLabel(statistic)),
+            Cell.from(abbreviatedTestName(requireNonNullElse(statistic.getDisplayNames(), List.of()), testWidth)),
             // de-emphasized: job and work unit differentiate the rows of one test (e.g. a JDK matrix) but are the
             // least relevant part of the ranking scan
             Cell.from(
                 Span.styled(
-                    truncate(statistic.getJob(), jobWidth, CharWidth.TruncatePosition.MIDDLE),
+                    truncate(requireNonNullElse(statistic.getJob(), ""), jobWidth, CharWidth.TruncatePosition.MIDDLE),
                     Style.EMPTY.dim()
                 )
             ),
             Cell.from(
                 Span.styled(
-                    truncate(statistic.getWorkUnit(), workUnitWidth, CharWidth.TruncatePosition.MIDDLE),
+                    truncate(
+                        requireNonNullElse(statistic.getWorkUnit(), ""),
+                        workUnitWidth,
+                        CharWidth.TruncatePosition.MIDDLE
+                    ),
                     Style.EMPTY.dim()
                 )
             )
         );
+    }
+
+    private static FlakyCount.@Nullable SeverityEnum severityOf(FlakinessStatisticResponse statistic) {
+        var flaky = statistic.getFlaky();
+        return flaky == null ? null : flaky.getSeverity();
     }
 
     private static String severityLabel(FlakyCount.@Nullable SeverityEnum severity) {
@@ -250,10 +256,15 @@ public final class FlakinessView implements ScreenRouter.Screen {
     }
 
     private static String flakyLabel(FlakinessStatisticResponse statistic) {
-        return statistic.getFlaky().getCount() + " (" + statistic.getFlaky().getPercentage() + "%)";
+        var flaky = statistic.getFlaky();
+        if (flaky == null || flaky.getCount() == null || flaky.getPercentage() == null) {
+            return "";
+        }
+        return flaky.getCount() + " (" + flaky.getPercentage() + "%)";
     }
 
-    private static String failedLabel(Long count) {
-        return String.valueOf(count);
+    private static String failedLabel(FlakinessStatisticResponse statistic) {
+        var failed = statistic.getFailed();
+        return failed == null || failed.getCount() == null ? "" : String.valueOf(failed.getCount());
     }
 }

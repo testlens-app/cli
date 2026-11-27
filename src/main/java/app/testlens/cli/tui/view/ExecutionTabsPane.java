@@ -24,6 +24,8 @@ import dev.tamboui.toolkit.element.Size;
 import dev.tamboui.toolkit.elements.RichTextAreaElement;
 import dev.tamboui.widgets.common.ScrollBarPolicy;
 import dev.tamboui.widgets.tabs.Tabs;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 import org.jspecify.annotations.Nullable;
@@ -69,10 +71,11 @@ final class ExecutionTabsPane {
         if (test == null) {
             return panel(detailsArea.fill()).rounded().borderColor(Color.DARK_GRAY).fill();
         }
+        List<Execution> executions = Objects.requireNonNullElse(test.getExecutions(), List.of());
         var tabs = Tabs.builder()
             .titles(
-                IntStream.range(0, test.getExecutions().size())
-                    .mapToObj(i -> tabTitle(i, test.getExecutions().get(i)))
+                IntStream.range(0, executions.size())
+                    .mapToObj(i -> tabTitle(i, executions.get(i)))
                     .toList()
             )
             .divider("─")
@@ -105,7 +108,7 @@ final class ExecutionTabsPane {
     }
 
     private static Line tabTitle(int index, Execution execution) {
-        var outcome = execution.getOutcome();
+        var outcome = Objects.requireNonNull(execution.getOutcome(), "no outcome");
         return Line.from(Span.styled(" #" + (index + 1) + " " + outcome + " ", Style.EMPTY.fg(outcomeColor(outcome))));
     }
 

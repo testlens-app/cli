@@ -10,6 +10,7 @@ import static app.testlens.cli.util.Console.showProgress;
 import static app.testlens.cli.util.Console.styled;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import app.testlens.cli.TestCommand.Mode;
 import app.testlens.cli.client.ApiException;
@@ -181,11 +182,11 @@ public class FlakesCommand implements Callable<Integer> {
             out.println(
                 "  " + (i + 1) + ". " + styled(
                     ansi,
-                    FlakesController.abbreviatedSha(flake.getSha()) + " @ " + flake.getBranch(),
+                    FlakesController.abbreviatedSha(requireNonNullElse(flake.getSha(), "")) + " @ " + flake.getBranch(),
                     Style.bold
                 ) + " · " + flake.getWorkUnit() + (flake.getJob() == null ? "" : " · " + flake.getJob())
             );
-            var executions = flake.getExecutions()
+            var executions = requireNonNullElse(flake.getExecutions(), List.<TestExecutionResponse>of())
                 .stream()
                 .sorted(comparing(TestExecutionResponse::getStartTime))
                 .toList();

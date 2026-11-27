@@ -37,7 +37,7 @@ public final class FlakesController {
     public FlakesController(FocusManager focusManager, TestInfo test, List<FlakeResponse> flakes) {
         this.focusManager = focusManager;
         // a flake without executions cannot be shown in the tabbed details pane
-        this.flakes = flakes.stream().filter(flake -> !flake.getExecutions().isEmpty()).toList();
+        this.flakes = flakes.stream().filter(flake -> !executionsOf(flake).isEmpty()).toList();
         this.tests = this.flakes.stream().map(flake -> toExecutedTest(test, flake)).toList();
         this.model = new PrTuiModel(test.displayName(), "", tests);
         this.detailsController = new PrDetailsController(this::navigate, focusManager, model);
@@ -52,12 +52,12 @@ public final class FlakesController {
      */
     public static ExecutedTest toExecutedTest(TestInfo test, FlakeResponse flake) {
         return new ExecutedTest()
-            .job(abbreviatedSha(flake.getSha()) + " @ " + flake.getBranch())
+            .job(abbreviatedSha(Objects.requireNonNullElse(flake.getSha(), "")) + " @ " + flake.getBranch())
             .workUnit(flake.getWorkUnit())
             .uniqueId(test.uniqueId())
             .displayNames(test.displayNames())
             .executions(
-                flake.getExecutions()
+                executionsOf(flake)
                     .stream()
                     .sorted(comparing(TestExecutionResponse::getStartTime))
                     .map(FlakesController::toExecution)
@@ -67,13 +67,18 @@ public final class FlakesController {
 
     private static Execution toExecution(TestExecutionResponse execution) {
         return new Execution()
-            .outcome(Execution.OutcomeEnum.valueOf(execution.getOutcome().name()))
+            .outcome(Execution.OutcomeEnum.valueOf(Objects.requireNonNull(execution.getOutcome(), "no outcome").name()))
             .startTime(execution.getStartTime())
             .durationMillis(execution.getDurationMillis())
             .htmlUrl(Objects.requireNonNullElse(execution.getHtmlUrl(), ""))
             .stackTrace(execution.getStackTrace())
             .comparisonFailure(execution.getComparisonFailure())
             .buildEnvironment(execution.getBuildEnvironment());
+    }
+
+    private static List<TestExecutionResponse> executionsOf(FlakeResponse flake) {
+        // the generated model keeps executions nullable for API responses that omit the property
+        return Objects.requireNonNullElse(flake.getExecutions(), List.of());
     }
 
     public static String abbreviatedSha(String sha) {
